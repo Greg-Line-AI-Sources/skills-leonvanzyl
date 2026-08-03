@@ -132,6 +132,7 @@ This is not a polish pass; it is most of the value. The scaffold in Step 3 is in
 
 - The dev server starts cleanly and the home page renders.
 - `drizzle/` contains generated migration files, `pnpm db:migrate` has been run, and creating one real record works end to end. No schema was ever pushed.
+- The `build` script runs `db:migrate` before `next build`, so a deploy applies pending migrations instead of shipping new code onto an old schema.
 - If sign-in was chosen: signing up, signing out, and signing back in works; `/dashboard` redirects when signed out and shows their own data when signed in.
 - If uploads were chosen: uploading a file through the app's own UI saves it and it renders after a refresh.
 - If payments were chosen: the test-mode checkout completes and the paid state is visible server-side.

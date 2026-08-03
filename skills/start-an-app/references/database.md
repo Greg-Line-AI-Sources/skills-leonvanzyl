@@ -119,6 +119,18 @@ Start it with `pnpm db:up` (see the scripts below). Docker Desktop must be runni
 "db:studio": "drizzle-kit studio"
 ```
 
+**Both branches** — also change the existing `build` script so migrations run on every deploy:
+
+```json
+"build": "pnpm db:migrate && next build"
+```
+
+(If the project was scaffolded with npm rather than pnpm, use `npm run db:migrate && next build`.)
+
+Without this, a deploy ships new code against an old database schema: the migration files are committed but nothing ever applies them on the host, and the first request touching a new column fails at runtime. Hooking `db:migrate` into `build` means the host applies pending migrations as part of the deploy, in the same step that produces the build. It is a no-op locally when there is nothing pending, so `pnpm build` stays safe to run any time.
+
+This needs the deployed environment to have the same database connection variable the migration uses (`POSTGRES_URL`, or the SQLite file path) set at *build* time, not just at runtime — say so at hand-off, because a build that can't reach the database fails the whole deploy.
+
 **Postgres branch** — also add:
 
 ```json
@@ -142,5 +154,6 @@ Commit the `drizzle/` folder. It is source code, not build output.
 ## Verify
 
 - `pnpm db:generate` produces a migration file in `drizzle/`, and `pnpm db:migrate` applies it without errors.
+- `package.json` has `"build": "pnpm db:migrate && next build"`, and `pnpm build` completes — running migrations first, then the Next.js build.
 - Inserting and reading one row through `db` works (a quick script or the first page using a table is fine).
 - `pnpm db:studio` opens and shows the tables (optional, good demo for the user).
