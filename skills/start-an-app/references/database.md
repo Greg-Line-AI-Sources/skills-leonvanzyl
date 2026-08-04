@@ -151,9 +151,62 @@ Read what `db:generate` produced before applying it. Drizzle cannot always tell 
 
 Commit the `drizzle/` folder. It is source code, not build output.
 
+## Schema conventions
+
+**Better Auth's tables are not yours to design.** `src/lib/db/auth-schema.ts` is written by the Better Auth CLI (see `references/auth.md`) and is left exactly as generated — same column names, same types, same `text` ids. Editing it breaks the adapter, and the next CLI run overwrites the edit anyway.
+
+**Every table you define gets a randomly generated UUID primary key.** Not an auto-incrementing integer. Sequential ids leak information the app never meant to publish — `/invoices/1042` tells any customer roughly how many invoices exist, and lets them walk the whole table by counting down — and they collide the moment data is merged or seeded from more than one place. A UUID is unguessable, and the row can be given its id before it ever reaches the database.
+
+The id fills itself in, so application code never passes one on insert.
+
+**Postgres branch:**
+
+```ts
+import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { user } from "./auth-schema";
+
+export const hikes = pgTable("hikes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  trail: text("trail").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+```
+
+`defaultRandom()` is a real database-level default (`gen_random_uuid()`), so rows inserted by anything other than the app get an id too.
+
+**SQLite branch** — SQLite has no `uuid` column type, so the id is `text` filled in by Drizzle at insert time:
+
+```ts
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { user } from "./auth-schema";
+
+export const hikes = sqliteTable("hikes", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  trail: text("trail").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+```
+
+`$defaultFn` runs in the app, not the database — fine here, because every insert goes through Drizzle. `crypto.randomUUID()` is a global in the Node and edge runtimes; nothing to import.
+
+**The one trap: a column that points at a user stays `text`.** Better Auth's `user.id` is `text` in both branches, so `userId` above is `text` even in the Postgres example where the table's own id is `uuid`. Declaring it `uuid` looks consistent and fails — the foreign key won't create, and `db:migrate` stops with a type mismatch. The same applies to any other column referencing a generated auth table.
+
+Tables that reference *your* tables use the matching type: `uuid` on Postgres, `text` on SQLite.
+
 ## Verify
 
 - `pnpm db:generate` produces a migration file in `drizzle/`, and `pnpm db:migrate` applies it without errors.
+- Every table you defined has a UUID primary key that fills itself in — inserting a row without passing an `id` works — and `auth-schema.ts` is untouched from what the Better Auth CLI generated.
 - `package.json` has `"build": "pnpm db:migrate && next build"`, and `pnpm build` completes — running migrations first, then the Next.js build.
 - Inserting and reading one row through `db` works (a quick script or the first page using a table is fine).
 - `pnpm db:studio` opens and shows the tables (optional, good demo for the user).

@@ -17,6 +17,7 @@ Turn an idea into a running web app. Understand the idea properly first, then bu
 - Surface gaps as suggestions, not interrogation. "Most apps like this need a way to edit an entry after posting it — want that in the first version?" is better than a checklist, and it's where the user learns what they actually want.
 - Recommend, then respect. If the user picks the non-recommended option, go with it without relitigating.
 - **Never `drizzle-kit push`.** Schema changes always go through `db:generate` then `db:migrate`, every time, from the very first table.
+- **Ids are randomly generated UUIDs — except in Better Auth's tables.** Every table you define gets one. The tables Better Auth's CLI generates stay exactly as generated, which also means any column pointing at a user stays `text`, not `uuid`. `references/database.md` has both branches.
 - The app is scaffolded **in the current working directory** — that folder is the project root. Never create a subfolder for it and never `cd` into one; the user already chose where the app goes by being there.
 - The stack is fixed: Next.js, TypeScript, Tailwind, shadcn/ui, Drizzle, Better Auth. The interview chooses *within* it (which database, what kind of sign-in, uploads, payments, AI) — it never swaps out these pieces.
 - **Better Auth owns anything that belongs to a user.** Where Better Auth has a plugin for an integration — payments above all — use the plugin, never the provider's standalone SDK wired in beside it. One source of truth for the user, one place customer ids and webhooks live.
@@ -123,7 +124,7 @@ The order matters: payments and uploads both extend what step 3 built, and step 
 This is not a polish pass; it is most of the value. The scaffold in Step 3 is infrastructure — here the app becomes recognisably theirs.
 
 - Name the project after their idea (package name, page titles, visible branding).
-- The schema tables are the **nouns** from Step 1a, with the ownership rule from Step 1b applied — a `userId` column and every query scoped to it if data is private.
+- The schema tables are the **nouns** from Step 1a, each with a UUID primary key, and the ownership rule from Step 1b applied — a `userId` column (`text`, matching Better Auth) and every query scoped to it if data is private.
 - Build the real pages: the front door and dashboard from `references/pages.md`, real navigation, and the **verbs** from Step 1a wired up — including editing and deleting if the gap-check said so.
 - Seed nothing generic: every visible string should make sense for *their* app. No "Item", no "Welcome to Next.js", no lorem ipsum.
 - Done when: someone opening the app would know what it is without being told, and the user can do the main thing the app exists for, end to end.

@@ -46,6 +46,8 @@ pnpm db:migrate
 
 Re-export the generated tables from `src/lib/db/schema.ts` (`export * from "./auth-schema";`) so Drizzle sees them.
 
+Leave `auth-schema.ts` exactly as generated — don't "tidy" its columns or switch its `text` ids to UUIDs to match your own tables. Your tables use UUID ids, but a column referencing `user.id` stays `text` in both database branches; `references/database.md` has the rule and the examples.
+
 API route `src/app/api/auth/[...all]/route.ts`:
 
 ```ts
