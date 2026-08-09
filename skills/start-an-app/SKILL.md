@@ -1,13 +1,13 @@
 ---
 name: start-an-app
-description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, a real landing page and dashboard, and an account settings area with system logs and debugging built in.
+description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, optional agent access over MCP so tools like Claude can use the app, a real landing page and dashboard, and an account settings area with system logs and debugging built in.
 ---
 
 # Start an App
 
 Turn an idea into a running web app. Understand the idea properly first, then build. The result is the user's actual app from the first commit — their name, their pages, their data model, only the infrastructure they need. It should never feel like a template.
 
-**Understanding comes before scaffolding.** The interview is the most valuable part of this skill, not a formality to get through. Ten minutes of good questions produces an app the user recognises; skipping them produces a generic CRUD shell they have to rewrite. Do not run a single command until Step 2 is agreed.
+**Understanding comes before scaffolding.** The interview is the most valuable part of this skill, not a formality to get through. Ten minutes of good questions produces an app the user recognises; skipping them produces a generic CRUD shell they have to rewrite. Do not run a single command until Step 3 is agreed.
 
 ## Ground rules
 
@@ -21,9 +21,12 @@ Turn an idea into a running web app. Understand the idea properly first, then bu
 - The app is scaffolded **in the current working directory** — that folder is the project root. Never create a subfolder for it and never `cd` into one; the user already chose where the app goes by being there.
 - The stack is fixed: Next.js, TypeScript, Tailwind, shadcn/ui, Drizzle, Better Auth. The interview chooses *within* it (which database, what kind of sign-in, email, uploads, payments, AI, background jobs) — it never swaps out these pieces.
 - **Better Auth owns anything that belongs to a user.** Where Better Auth has a plugin for an integration — payments above all — use the plugin, never the provider's standalone SDK wired in beside it. One source of truth for the user, one place customer ids and webhooks live.
+- **A tool is another caller, never a second way in.** If the app is opened up to AI agents, every tool goes through the same functions, the same ownership checks and the same log as the buttons do, and takes the user from the token rather than from anything the model passed. `references/mcp.md`.
 - Prefer choices that survive deployment. Where a feature works differently in production (uploads, Postgres), the local setup and the deployed setup must be the same code switched by an environment variable — never a second code path the user has to remember to change.
 - **Every app gets a settings area.** Not as a finishing touch — from the first commit, scaled to what the app has. Accounts mean a profile, verification status, password, devices, and a way to leave. Every app, accounts or not, gets a system view: what's configured, what happened, what's running. `references/settings.md` and `references/ops.md`.
 - **Anything the app does out of sight is visible and controllable from inside it.** If the app sends an email, runs work in the background, or acts on a schedule, the user can see it happened, read why it failed, stop it, and try it again — in the app, not by reading logs on a hosting dashboard. Building something the user cannot watch is not finished.
+- **Never write or accept a version number.** Not in an install command, not in a `package.json` snippet, not in prose, not a Docker image tag. No file in this skill pins one, and none should ever gain one. Every install takes the **current stable** release, and Step 2 is what establishes what that is. A version written into a skill file is a lie with a timestamp on it: it goes stale in silence and builds the app against last year's API.
+- **Nothing deprecated, ever.** If the current release deprecates, renames, or supersedes something a reference file uses, use the replacement — not the old path that "still works". Still working is what deprecated means; it is a removal notice with a delay on it, and shipping onto one hands the user a rewrite they didn't ask for.
 - All commands, package names, and config live in the reference files, never in this file. Load only the references for the branches the user chose.
 - If a reference command fails because a tool changed (renamed flag, different init flow), check that tool's official docs, use the current equivalent, finish the job, and tell the user at the end that this skill's reference file needs a refresh.
 
@@ -97,10 +100,36 @@ Now the branches. One at a time, each with a recommendation. **Don't ask what th
    → Yes when work must survive a restart, retry itself after a failure, run on a schedule, fan out over many items, or wait minutes to days for something. Importing a spreadsheet, generating a report, calling a slow external service, a nightly digest.
    → If yes: recommend **Inngest** ("it runs the work outside the app, picks up where it left off if something crashes, retries on its own, and you can watch every step of it happen while you build"). It's free to start and needs no account at all during development.
 
-8. **"When someone lands on the app signed out, what should they see?"**
+8. **"Should other software be able to use this on your behalf — so you could ask Claude to add an entry or pull a summary without opening the app yourself?"**
+   → A genuine either/or, so ask it that way and don't lean. Yes means the app's main actions also become tools an AI agent can call, behind the same sign-in and the same permissions — it works from Claude Code straight away, and from Claude.ai or ChatGPT once the app is deployed somewhere public. No means the app is used by people in a browser, which is a perfectly good answer, and this can be added later without changing anything built before it.
+   → Worth saying if they're unsure: the tools end up being the same handful of things the app already does, so the cost is mostly the sign-in plumbing, and there's a page listing every agent that has access with a button to cut it off.
+   → Needs accounts, the same way payments do. If they said no to sign-in, say it in one sentence — "an agent has to sign in as you, so the app knows whose data it's touching" — rather than treating it as a blocker.
+
+9. **"When someone lands on the app signed out, what should they see?"**
    → Decides the front door: a real landing page for something other people will sign up for, or straight into the app for a personal tool. Don't assume a marketing page — `references/pages.md` has the call.
 
-## Step 2 — Build sheet
+## Step 2 — Check what's current
+
+The branches are chosen, so now find out what building them actually involves *today*. Nothing in this skill names a version, deliberately — this step is where the versions come from. It costs one round of parallel subagents and prevents the expensive failure: an app built confidently against an API that moved.
+
+**Dispatch one subagent per chosen branch, all in a single message so they run at once.** Only the branches the interview selected — there is no sense researching payments for an app that takes no money. The base project, the database and the pages step always count as branches here.
+
+Each gets the same brief with its own packages filled in:
+
+> Find the current stable release of `<packages>`. Report: the latest stable version of each; anything deprecated, renamed, moved to a different package, or removed within the last two majors; the current import paths and function signatures for `<the specific things this reference file uses>`; **any capability added since that would replace hand-written code in `references/<file>.md`**; and any migration note that would break what's in there. Prefer the package's own docs and changelog over blog posts or search summaries, and check what is actually published on the registry rather than what a docs page claims. Say plainly what you verified against a primary source and what you inferred.
+
+Each reference file carries a `Last verified` date at the top. Use it to size the effort: a file verified recently needs a confirmation pass, one verified a year ago needs the assumption that something has moved.
+
+Then reconcile, before installing anything:
+
+- **Latest stable only.** Not release candidates, not betas, not `next` or `canary` tags — unless the user asks for one specifically and knows why.
+- **Take the new capability when there is one.** Reference files sometimes hand-roll something because the library couldn't do it yet. If it can now, use the built-in and delete the workaround — `references/mcp.md` says exactly where this is likely.
+- **On API detail the research wins; on how the pieces fit together this skill wins.** Names, signatures, import paths, options, flags: take what the research found. Which piece owns what, and how it wires into the rest of the app: the reference file. Most reference files restate this split at the top for their own dependency.
+- **If a reference file's approach is now deprecated, take the replacement** and finish the job with it. Don't split the difference.
+- **Say something to the user only when something changed.** One line, plain: "Better Auth moved that into a separate package since this was written — I'm using the new one." Never narrate research that found everything was fine; it reads as filler.
+- **Write down what's stale.** Anything the research contradicted goes in the hand-off at the end, so this skill can be corrected.
+
+## Step 3 — Build sheet
 
 Restate the plan in plain words before touching anything. Example shape:
 
@@ -110,6 +139,7 @@ Restate the plan in plain words before touching anything. Example shape:
 > **What you can do:** log a hike, edit it later, delete one, see them newest-first.
 > **Signing in:** email and password, so it's yours alone.
 > **Photos:** saved in the project while you build; they move to cloud storage when you deploy.
+> **From Claude:** you'll be able to log a hike or ask about past ones from Claude itself, without opening the app — and see and revoke that access from inside it.
 > **Also included:** a settings page where you can change your password and delete your account, and a system page showing what's set up and what's happened.
 > **Not in version one:** sharing hikes with friends, maps, and the stats page — easy to add once the basics feel right.
 >
@@ -119,38 +149,40 @@ Include the data model and the explicit **not in version one** list — those tw
 
 Get a clear go-ahead. Adjust anything they push back on. If the answer reopens what the app *is* rather than tweaking a detail, go back to Step 1a — that's cheaper now than after the schema exists.
 
-## Step 3 — Scaffold
+## Step 4 — Scaffold
 
 Work through these in order. Each reference has a **Verify** section — complete it before moving on. Every path in them is relative to the current working directory.
 
 1. Base project → `references/stack.md`
 2. Database (SQLite or Postgres-in-Docker branch) → `references/database.md`
 3. Sign-in, if chosen (email+password, optionally Google) → `references/auth.md`
-4. Email, if chosen → `references/email.md` (also wires verification and password reset, if step 3 ran)
+4. Email, if chosen → `references/email.md` (also wires verification and password reset, if sign-in ran)
 5. File uploads, if chosen → `references/storage.md`
-6. Payments, if chosen → `references/payments.md` (requires step 3)
+6. Payments, if chosen → `references/payments.md` (requires sign-in)
 7. AI features, if chosen → `references/ai.md`
 8. Background jobs, if chosen → `references/jobs.md`
 9. Landing page and dashboard → `references/pages.md`
-10. Account settings → `references/settings.md` (requires step 3; skip only if there is no sign-in)
-11. System visibility → `references/ops.md` (always)
+10. Agent access, if chosen → `references/mcp.md` (requires sign-in)
+11. Account settings → `references/settings.md` (requires sign-in; skip only if there is no sign-in)
+12. System visibility → `references/ops.md` (always)
 
-The order matters: payments and uploads both extend what step 3 built, step 9 needs all of it in place, and steps 10 and 11 hang off the navigation step 9 creates. Anything that changes `src/lib/auth.ts` means regenerating the Better Auth schema and running `db:generate` + `db:migrate` again — the reference files say where.
+The order matters: payments, uploads and agent access all extend what sign-in built; the pages step needs the lot in place; and settings and system visibility hang off the navigation the pages step creates. Agent access sits after the pages step because its consent screen has to look like the rest of the app, and before the last two because both grow a section only if it ran. Anything that changes `src/lib/auth.ts` means regenerating the Better Auth schema and running `db:generate` + `db:migrate` again — the reference files say where.
 
-Steps 10 and 11 are not a polish pass to drop if time is short. They are what turns a scaffold into something the user can operate.
+The last two are not a polish pass to drop if time is short. They are what turns a scaffold into something the user can operate.
 
-## Step 4 — Make it theirs
+## Step 5 — Make it theirs
 
-This is not a polish pass; it is most of the value. The scaffold in Step 3 is infrastructure — here the app becomes recognisably theirs.
+This is not a polish pass; it is most of the value. The scaffold in Step 4 is infrastructure — here the app becomes recognisably theirs.
 
 - Name the project after their idea (package name, page titles, visible branding).
 - The schema tables are the **nouns** from Step 1a, each with a UUID primary key, and the ownership rule from Step 1b applied — a `userId` column (`text`, matching Better Auth) and every query scoped to it if data is private.
 - Build the real pages: the front door and dashboard from `references/pages.md`, real navigation, and the **verbs** from Step 1a wired up — including editing and deleting if the gap-check said so.
 - Seed nothing generic: every visible string should make sense for *their* app. No "Item", no "Welcome to Next.js", no lorem ipsum. This includes the settings area and the emails — a section called "Notifications" listing categories the app never sends, or an email signed "My App", is the same failure as a page of lorem ipsum.
 - Build only the settings sections this app has. An empty Billing tab or a Notifications tab for an app that sends no email is worse than a missing one.
+- If agent access was chosen, the tools are named for the **verbs** too — `log_hike`, not `create_item` — and they are the handful of things someone would actually ask for, not one per table.
 - Done when: someone opening the app would know what it is without being told, and the user can do the main thing the app exists for, end to end.
 
-## Step 5 — Verify and hand off
+## Step 6 — Verify and hand off
 
 - The dev server starts cleanly and the home page renders.
 - `drizzle/` contains generated migration files, `pnpm db:migrate` has been run, and creating one real record works end to end. No schema was ever pushed.
@@ -161,9 +193,11 @@ This is not a polish pass; it is most of the value. The scaffold in Step 3 is in
 - If payments were chosen: the test-mode checkout completes and the paid state is visible server-side.
 - If AI was chosen: the feature works against a real key, and it is the feature the interview asked for rather than a bare chat box.
 - If background jobs were chosen: the dev server at http://localhost:8288 shows the run and its steps, a deliberate failure retries and is visible, and the job's row ends in the right state.
+- If agent access was chosen: adding the server in Claude Code signs in through the app's own pages and its consent screen, a tool returns only that account's data, a second account cannot reach the first one's records, and revoking the connection in settings stops the next call.
 - Where there is sign-in: `/settings` is reachable from the app's navigation, the profile saves, the password changes, another device can be signed out, and deleting a test account really removes it and its data.
 - The system page exists, shows what is and isn't configured without printing a single key or token, and is refused server-side to a second, non-admin account.
 - **Missing keys degrade, never crash.** With `.env` values absent, the app still starts and the affected feature shows a friendly "not configured yet" notice.
+- Anything Step 2's research contradicted, or any reference command that had to be changed on the fly, is named at the end — which file, what was wrong — so this skill can be corrected. Say it to the user in one line; they may be the person who fixes it.
 - Close with a plain-language summary: how to start the app (including `pnpm db:up` if Postgres is in Docker), what each entry in `.env` is for, and two or three sensible next steps.
 - Show them the system page and say what it's for. It is the answer to "why didn't that email arrive?" and "is that still running?", and they will not find it on their own.
-- Where local and production differ, spell out the one-time switch: connect a Blob store for uploads, point `POSTGRES_URL` at a hosted database, swap payment keys out of test mode, add the Resend key once the domain is verified, add the Inngest keys and sync the app. Each is a setting on the host, not a code change — say that, because it's the part people expect to be hard. The two that also need an action outside the host are verifying the email domain in DNS and syncing the app with Inngest after the first deploy; call those out by name.
+- Where local and production differ, spell out the one-time switch: connect a Blob store for uploads, point `POSTGRES_URL` at a hosted database, swap payment keys out of test mode, add the Resend key once the domain is verified, add the Inngest keys and sync the app, point `BETTER_AUTH_URL` at the real domain so agent tokens are issued for it. Each is a setting on the host, not a code change — say that, because it's the part people expect to be hard. The two that also need an action outside the host are verifying the email domain in DNS and syncing the app with Inngest after the first deploy; call those out by name.

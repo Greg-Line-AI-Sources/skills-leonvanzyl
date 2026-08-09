@@ -46,6 +46,7 @@ export async function getSystemStatus() {
     { name: "File uploads", ready: Boolean(process.env.BLOB_READ_WRITE_TOKEN), hint: "BLOB_READ_WRITE_TOKEN — local folder in use until set" },
     { name: "Payments", ready: Boolean(process.env.POLAR_ACCESS_TOKEN), hint: "POLAR_ACCESS_TOKEN" },
     { name: "AI", ready: Boolean(process.env.OPENROUTER_API_KEY), hint: "OPENROUTER_API_KEY" },
+    { name: "Agent access (MCP)", ready: Boolean(process.env.BETTER_AUTH_URL), hint: "BETTER_AUTH_URL — must be the app's public URL" },
   ];
 
   let database = false;
@@ -122,6 +123,26 @@ If `INNGEST_API_KEY` isn't set, the list still works from the `jobs` table and t
 
 Non-admin users should still see *their own* jobs somewhere in the app if the app's work is job-shaped ("your export is being prepared"). That belongs on the relevant feature page, scoped by `userId`, not here.
 
+## Agent activity — only if `references/mcp.md` ran
+
+Reads `mcp_call_log` newest-first: which tool, which client, which user, worked or failed, how long it took, and how many rows went out.
+
+```tsx
+const rows = await db
+  .select()
+  .from(mcpCallLog)
+  .orderBy(desc(mcpCallLog.createdAt))
+  .limit(100);
+```
+
+This panel shows **reads as well as writes**, unlike the activity log above. When a person reads their own data it is noise; when an agent does, it is the event — a read is how data leaves the app, and the row count is the number that tells you how much. Sort or filter by it and an agent pulling an entire account stands out from one answering a question.
+
+Surface the error text on failed rows. "Claude said it couldn't find anything" is the support question this panel exists to answer, and the answer is usually a scope the user never approved or a tool that threw on an argument the model guessed.
+
+Show the client name beside the tool. One person can have Claude Code and the Claude connector both attached, and "which one did that?" is otherwise unanswerable.
+
+Non-admin users should be able to see their *own* agent activity from `/settings/connections` — the same rows scoped by `userId`. Admins see everyone's here.
+
 ## Email log — only if `references/email.md` ran
 
 Reads `email_log`, newest first: recipient, subject, template, status, and when. Status comes from the send itself and then from the Resend webhook if it was set up, so `sent` becoming `delivered` or `bounced` is visible here.
@@ -141,4 +162,5 @@ Show the recipient address, since an admin needs it to help. Do not show the mes
 - Doing the app's main action writes an activity row that reads in plain language.
 - Jobs branch: a running job appears with its steps, cancelling it moves it out of running, and re-running it starts a new run.
 - Email branch: an email sent from the app appears in the log with the right status, and a failed send can be retried from the page.
+- Agent access branch: a tool called from Claude appears with its client and row count, a read shows up as well as a write, and a failed call shows the reason it failed.
 - With `.env` emptied, the page still renders, shows everything as not configured, and nothing crashes.

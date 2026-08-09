@@ -62,7 +62,7 @@ Create the folder and ignore the data file: `mkdir -p data` and add `data/` to `
 ```yaml
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:alpine
     environment:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app
@@ -74,6 +74,8 @@ services:
 volumes:
   pgdata:
 ```
+
+The tag carries no version on purpose, so a fresh project gets the current stable Postgres. Say one thing about it to the user if they ever ask why: a Postgres data directory belongs to the major version that created it, so once the app has real data in it, an image that moves to a new major will refuse to start against the old volume — the fix is a dump and restore, not a flag. That is the moment to pin the major, not before.
 
 Append to `.env`:
 

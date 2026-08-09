@@ -52,7 +52,7 @@ export const auth = betterAuth({
 
 **`input: false` on `role`** is the security control, not a formality. Without it the role is an ordinary profile field and a user can set their own to `admin` through the normal update call.
 
-`rateLimit` is disabled in development and defaults to in-memory storage, which does nothing across serverless instances — `storage: "database"` is what makes the resend cooldown real.
+`rateLimit` is disabled in development and defaults to in-memory storage, which does nothing across serverless instances — `storage: "database"` is what makes the resend cooldown real. If `references/mcp.md` already added a `rateLimit` block, merge these rules into its `customRules` rather than replacing the object.
 
 Adding `additionalFields` and `rateLimit` changes the schema, so regenerate and migrate:
 
@@ -124,6 +124,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         <Link href="/settings/account">Account</Link>
         <Link href="/settings/security">Security</Link>
         {/* Notifications — only if email was set up */}
+        {/* Connected apps — only if agent access was set up */}
         {/* Billing — only if payments were set up */}
         {isAdmin && <Link href="/settings/system">System</Link>}
       </nav>
@@ -236,6 +237,25 @@ The categories are the ones this app actually sends — the emails named in the 
 
 > **Transactional email ignores these preferences.** Password resets, email confirmation, receipts, and account-security notices always send, and never carry an unsubscribe link. Only optional mail — digests, product updates, activity summaries — checks the table. Putting an unsubscribe link on a password reset is how people lock themselves out.
 
+## Connected apps — `/settings/connections`
+
+Only if `references/mcp.md` ran. This is where somebody sees which AI agents can act as them, and takes it back.
+
+One row per granted consent, read through the OAuth provider plugin's client (`/api/auth/oauth2/get-consents`):
+
+- **The client's name** as it registered itself, with a quiet line saying that name was chosen by whoever connected. With dynamic registration anything can call itself anything, and a user comparing "Claude" against "Claude Desktop " should be able to tell they are different rows.
+- **What it can do**, in the app's words — "Read your hikes", "Add and edit hikes" — not the scope strings.
+- **When it was granted**, and **when it was last used**, from `mcp_call_log`. Last-used is the one that matters: a connection nobody has touched in three months is the one to revoke.
+- **Revoke**, calling `/oauth2/delete-consent` and then `/oauth2/revoke` for the tokens.
+
+Revoking has to break the *next* tool call, not just remove a row from this page. Confirm it against a live connection rather than assuming — deleting the consent without revoking the outstanding access token leaves that token working until it expires, which is up to an hour of access after the user believed they had cut it off.
+
+Put the connector URL at the top of the page with a copy button — the app's own address plus `/api/mcp` — and one line saying where it goes in Claude. It is not a secret, it is the thing somebody needs in order to connect at all, and there is nowhere else they would think to look for it.
+
+Show the person their own agent activity underneath, the same `mcp_call_log` rows `references/ops.md` renders for admins, scoped to `userId`. Seeing that a connection read forty rows an hour ago is what makes the revoke button meaningful.
+
+Link the page from the app's account menu as well as the settings nav. Someone who has just realised an agent has their data will look for it in the obvious place first.
+
 ## Billing — `/settings/billing`
 
 Only if payments were set up. There is nothing to build: show the current plan from the server-side subscription state, then link to the provider's hosted portal that `references/payments.md` already wired (`authClient.customer.portal()` for Polar, the Stripe equivalent otherwise). Do not rebuild cancel, invoice, or card-change screens.
@@ -262,6 +282,8 @@ user: {
     beforeDelete: async (user) => {
       // Payments branch only: cancel the subscription here, BEFORE the row goes.
       // Doing it after means a failure leaves a live subscription with no account.
+      // Agent access branch: revoke their OAuth consents and access tokens here too,
+      // or a connected agent keeps a working token for an account that no longer exists.
     },
     afterDelete: async (user) => {
       // Uploads branch only: delete their files from storage.
@@ -320,5 +342,6 @@ Do not lock the app. Let people look around, and gate only the things that would
 - The devices list shows the current session marked as this device, and revoking another session signs it out — confirm in a second browser, and confirm the list still loads for an account signed in more than a day ago.
 - Deleting a test account sends the confirmation email, the link removes the account and its data, and signing in with it afterwards fails.
 - A second account cannot see the first account's data anywhere in the settings area, and `/settings/system` is not in its navigation.
+- Agent access branch: Connected apps lists a real connection with a last-used time, and revoking it makes the next tool call fail rather than only clearing the row.
 - Every section that exists corresponds to something this app actually has — no empty Billing tab, no Notifications tab without email.
 - With `.env` values absent, the settings pages still render and the affected controls show a friendly "not configured yet" note instead of crashing.

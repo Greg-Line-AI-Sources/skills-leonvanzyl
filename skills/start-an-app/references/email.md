@@ -17,7 +17,7 @@ pnpm add resend react-email
 pnpm add -D @react-email/ui
 ```
 
-> React Email 6 merged everything into the single `react-email` package. Import components, `render`, and `toPlainText` from `"react-email"` — **not** `@react-email/components`, and not the per-component `@react-email/button` packages. Those still install and still resolve, which is exactly why the mistake is easy to make and hard to spot. `@react-email/ui` is the local preview server only, hence `-D`.
+> React Email merged everything into the single `react-email` package. Import components, `render`, and `toPlainText` from `"react-email"` — **not** `@react-email/components`, and not the per-component `@react-email/button` packages. Those still install and still resolve, which is exactly why the mistake is easy to make and hard to spot. `@react-email/ui` is the local preview server only, hence `-D`.
 
 Append to `.env`:
 

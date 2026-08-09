@@ -10,7 +10,7 @@ Last verified: 2026-08-09
 
 **Only open this file if the interview genuinely called for it.** Sending one email, resizing one image, or writing one row does not need a job queue; a server action does that fine. This earns its place when work must survive a restart, retry on failure, run on a schedule, fan out over many items, or wait for something that takes minutes to days. If none of that came up, close this file — an unused job system is pure overhead.
 
-> Inngest's SDK v4 changed enough that older examples are actively wrong: triggers moved *inside* the config object, `EventSchemas` was replaced, and the SDK now assumes production unless told otherwise. Almost every tutorial and blog post online is still v3. Use what's below; if something doesn't compile, check Inngest's current docs rather than a search result.
+> Inngest's SDK changed enough at its last major that older examples are actively wrong: triggers moved *inside* the config object, `EventSchemas` was replaced, and the SDK now assumes production unless told otherwise. Almost every tutorial and blog post online predates that. Use what's below; if something doesn't compile, check Inngest's current docs rather than a search result.
 
 ## Install
 
@@ -25,7 +25,7 @@ Append to `.env`:
 INNGEST_DEV=1
 ```
 
-That one line is the whole local setup. `INNGEST_DEV=1` tells the SDK to talk to the local dev server and skip signature checks — without it, v4 assumes production and demands a signing key. Production keys come later, at deploy time.
+That one line is the whole local setup. `INNGEST_DEV=1` tells the SDK to talk to the local dev server and skip signature checks — without it the SDK assumes production and demands a signing key. Production keys come later, at deploy time.
 
 Change the `dev` script in `package.json` so both processes start together:
 
@@ -200,7 +200,7 @@ Trigger something from the app and watch it appear. Then make a step throw on pu
 2. **Vercel**: install the Inngest integration from the Vercel marketplace. It sets both keys and re-syncs the app on every deploy, which is the part people otherwise forget.
 3. **Anywhere else** (Railway, Fly, Render, a container): copy the **Event Key** and **Signing Key** from the environment's settings into the host's environment variables as `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`, deploy, then use **Apps → Sync New App** in the Inngest dashboard with the URL `https://<their-domain>/api/inngest`. Re-sync after any deploy that adds or changes a function.
 
-Do **not** set `INNGEST_DEV` in production — v4 already defaults to cloud mode, and setting it to `0` is unnecessary noise.
+Do **not** set `INNGEST_DEV` in production — the SDK already defaults to cloud mode, and setting it to `0` is unnecessary noise.
 
 Two things that waste an afternoon if unmentioned:
 
