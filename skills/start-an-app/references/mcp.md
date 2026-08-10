@@ -17,8 +17,10 @@ Last verified: 2026-08-09
 Three parts, and it helps to say them out loud to the user in this order:
 
 1. **An authorisation server.** Already there — it's Better Auth. The plugin adds the OAuth endpoints an agent needs to ask permission.
-2. **A resource server.** One route, `/api/mcp`, that checks the token and runs the tool.
+2. **A resource server.** One route, `/mcp`, that checks the token and runs the tool.
 3. **The tools.** The app's own verbs, the same ones the buttons call.
+
+**The endpoint is `[domain]/mcp`, not `/api/mcp`.** Next.js puts route handlers under `src/app/api/` by convention and it is an easy habit to follow straight past this, but nothing in the App Router requires that segment — `src/app/mcp/route.ts` serves `/mcp` perfectly well. It matters because this URL is not an internal detail: it is a string a person types into Claude's connector dialog, reads out to somebody, or puts in a README. `traillog.com/mcp` is what the ecosystem has settled on and what people guess first. Every other API route in the app stays under `/api`; this one is public-facing, so it doesn't. Better Auth keeps its own `/api/auth` base path unchanged.
 
 The agent never sees a password. It gets sent to the app's own sign-in page, the user approves it on a consent screen, and the agent walks away with a scoped token the user can revoke.
 
@@ -47,7 +49,7 @@ Four separate things have to be character-identical: the plugin's audience, the 
 const BASE_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
 export const ISSUER = `${BASE_URL}/api/auth`;
-export const MCP_RESOURCE = `${BASE_URL}/api/mcp`;
+export const MCP_RESOURCE = `${BASE_URL}/mcp`;
 
 // Two scopes, named after the app. Not one per table.
 export const MCP_SCOPES = ["hikes:read", "hikes:write"] as const;
@@ -163,10 +165,12 @@ export const OPTIONS = () => new Response(null, { headers: cors });
 Then two one-line routes, both re-exporting it:
 
 ```ts
-// src/app/.well-known/oauth-protected-resource/api/mcp/route.ts
+// src/app/.well-known/oauth-protected-resource/mcp/route.ts
 // and src/app/.well-known/oauth-protected-resource/route.ts
 export { GET, OPTIONS } from "@/lib/mcp/protected-resource";
 ```
+
+The suffixed path mirrors the endpoint's own path, so it is `/mcp` here rather than `/api/mcp` — RFC 9728 inserts the resource's path after the well-known segment, and a document served at the wrong suffix is a document Claude does not find.
 
 `authorization_servers` takes exactly one entry and Claude uses only the first — it does not try the others. `scopes_supported` here lists the app's two scopes and deliberately leaves out `offline_access`: that belongs to the authorisation server, and Claude adds it by itself when it wants a refresh token.
 
@@ -203,7 +207,7 @@ Log one decoded payload to the terminal the first time this runs and check the f
 
 ### The endpoint
 
-`src/app/api/mcp/route.ts`:
+`src/app/mcp/route.ts` — note the path, per the rule above:
 
 ```ts
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
@@ -230,7 +234,7 @@ const handler = withMcpAuth(
   {
     required: true,
     requiredScopes: ["hikes:read"],
-    resourceMetadataPath: "/.well-known/oauth-protected-resource/api/mcp",
+    resourceMetadataPath: "/.well-known/oauth-protected-resource/mcp",
   },
 );
 
@@ -415,7 +419,7 @@ Accepting posts to `/api/auth/oauth2/consent`. Do not auto-approve, and do not s
 **Claude Code talks to localhost.** No tunnel, no deploy — the whole flow works the moment the routes exist:
 
 ```bash
-claude mcp add --transport http traillog http://localhost:3000/api/mcp
+claude mcp add --transport http traillog http://localhost:3000/mcp
 ```
 
 Then `/mcp` inside Claude Code to run the sign-in. The browser opens the app's own sign-in page, then the consent screen, and the tools appear. This is the loop to iterate in.
@@ -428,14 +432,14 @@ For tool shapes and schemas without the auth round trip, `pnpm dlx @modelcontext
 cloudflared tunnel --url http://localhost:3000
 ```
 
-Set `BETTER_AUTH_URL` to the tunnel's public URL and restart the dev server, or every token comes out stamped with the wrong audience. Then add the tunnel URL plus `/api/mcp` under **Settings → Connectors → Add custom connector** on claude.ai.
+Set `BETTER_AUTH_URL` to the tunnel's public URL and restart the dev server, or every token comes out stamped with the wrong audience. Then add the tunnel URL plus `/mcp` under **Settings → Connectors → Add custom connector** on claude.ai.
 
 If discovery fails, check it by hand before guessing — these three must line up exactly:
 
 ```bash
-curl -s http://localhost:3000/.well-known/oauth-protected-resource/api/mcp | jq
+curl -s http://localhost:3000/.well-known/oauth-protected-resource/mcp | jq
 curl -s http://localhost:3000/.well-known/oauth-authorization-server | jq
-curl -si -X POST http://localhost:3000/api/mcp | head -20
+curl -si -X POST http://localhost:3000/mcp | head -20
 ```
 
 The third must be a `401` carrying a `WWW-Authenticate: Bearer ... resource_metadata="..."` header. A `200` means `required: true` is missing.
@@ -445,7 +449,7 @@ One thing this file could not confirm: whether Better Auth matches Claude Code's
 ## Going to production
 
 - `BETTER_AUTH_URL` becomes the real public URL on the host. That is the entire change; everything else derives from it.
-- Give the user the connector URL — their domain plus `/api/mcp` — and show them where it goes in Claude. They will not find it on their own.
+- Give the user the connector URL — their domain plus `/mcp`, so `https://traillog.com/mcp` — and show them where it goes in Claude. They will not find it on their own.
 - If the host sits behind a proxy that rewrites the origin, pass `resourceUrl` to `withMcpAuth` explicitly. On Vercel the forwarded headers are already right.
 - Dynamic registration creates a client row per fresh connection. Fine for one person; if the app gets popular, mention that old unused clients are worth pruning.
 - Two things on Better Auth's roadmap remove code from this file: serving the protected-resource document natively, and client metadata documents, which replace dynamic registration outright. Both are worth taking when they land, and both need a database migration — so take them deliberately, not by accident during an unrelated upgrade.
@@ -458,7 +462,8 @@ Don't build it unless the user asks for it specifically and understands that. If
 
 ## Verify
 
-- An unauthenticated `POST /api/mcp` returns `401` with a `WWW-Authenticate` header containing `resource_metadata`, not a `200`.
+- The endpoint answers at `/mcp` — `src/app/mcp/route.ts` — and there is no `src/app/api/mcp/` directory left behind.
+- An unauthenticated `POST /mcp` returns `401` with a `WWW-Authenticate` header containing `resource_metadata`, not a `200`.
 - Both `.well-known` documents return JSON, and two pairs match character for character: the protected-resource document's `resource` against `validAudiences[0]` in `src/lib/auth.ts`, and its `authorization_servers[0]` against the `issuer` in the authorisation-server document. No trailing slash on either.
 - `offline_access` appears in the authorisation server document and does not appear in the protected-resource document.
 - Adding the server in Claude Code opens the app's own sign-in page, then a consent screen wearing the app's design, and the tools appear afterwards.

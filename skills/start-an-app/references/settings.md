@@ -250,7 +250,7 @@ One row per granted consent, read through the OAuth provider plugin's client (`/
 
 Revoking has to break the *next* tool call, not just remove a row from this page. Confirm it against a live connection rather than assuming — deleting the consent without revoking the outstanding access token leaves that token working until it expires, which is up to an hour of access after the user believed they had cut it off.
 
-Put the connector URL at the top of the page with a copy button — the app's own address plus `/api/mcp` — and one line saying where it goes in Claude. It is not a secret, it is the thing somebody needs in order to connect at all, and there is nowhere else they would think to look for it.
+Put the connector URL at the top of the page with a copy button — the app's own address plus `/mcp`, per `references/mcp.md` — and one line saying where it goes in Claude. It is not a secret, it is the thing somebody needs in order to connect at all, and there is nowhere else they would think to look for it.
 
 Show the person their own agent activity underneath, the same `mcp_call_log` rows `references/ops.md` renders for admins, scoped to `userId`. Seeing that a connection read forty rows an hour ago is what makes the revoke button meaningful.
 
