@@ -1,6 +1,6 @@
 # Agent access (MCP)
 
-Last verified: 2026-08-09
+Last verified: 2026-08-11
 
 **Purpose:** Let AI agents — Claude, Claude Code, ChatGPT, Cursor, anything that speaks MCP — do the app's real work on behalf of a signed-in user. The app gains a second front door: the same actions, the same ownership rules, the same log, reached over an authenticated protocol instead of a browser.
 
@@ -10,7 +10,7 @@ Last verified: 2026-08-09
 
 **Prerequisite: sign-in must exist.** Tools act as somebody, and the whole authorisation flow hangs off the auth config, so there is nowhere to put this otherwise. If the user asked for agent access but said no to accounts, set up `references/auth.md` first and explain it in a sentence ("an agent has to sign in as *you*, so the app knows whose data it's touching") rather than treating it as a blocker.
 
-> **Almost every example online is wrong, in four specific ways.** This area churned hard and the search results have not caught up — Step 2's research is not optional here. (1) Better Auth's own `mcp()` plugin is **deprecated** in favour of the OAuth provider plugin used below; do not reach for it because a tutorial does. (2) `@vercel/mcp-adapter` is dead — it was renamed `mcp-handler`, and the rename came with breaking changes: `server.tool()` became `registerTool`, `inputSchema` takes a whole schema object rather than a bare shape, and `basePath`, `maxDuration` and `redisUrl` are gone. (3) Better Auth's *own* MCP documentation page is still written against the dead adapter and will not compile. (4) Anything telling you to provision Redis is describing the old adapter. If something here doesn't compile, check the current docs — never a blog post.
+> **Almost every example online is wrong, in five specific ways.** This area churned hard and the search results have not caught up — Step 2's research is not optional here. (1) Better Auth's own `mcp()` plugin is **deprecated** in favour of the OAuth provider plugin used below; do not reach for it because a tutorial does — and it is not only a naming preference, the retired plugin also omits the `iss` parameter the current spec expects on an authorisation response. (2) The MCP TypeScript SDK **split in two**: `@modelcontextprotocol/server` and `@modelcontextprotocol/client` replace the single `@modelcontextprotocol/sdk`, and `mcp-handler` moved with it. Examples written against the old pairing use variadic `server.tool()`, pass a bare shape to `inputSchema` rather than a whole schema, read `extra.authInfo` instead of `ctx.http?.authInfo`, and set `basePath`, `maxDuration` or `redisUrl` options that no longer exist. (3) Better Auth's *own* MCP documentation page is still written against a retired adapter and will not compile. (4) Anything telling you to provision Redis is describing that old adapter. (5) Anything describing an `initialize` handshake, an `Mcp-Session-Id` header, a GET stream for server messages, or resumability via `Last-Event-ID` predates the stateless revision and is describing a protocol that no longer exists. If something here doesn't compile, check the current docs — never a blog post.
 
 ## What you're building
 
@@ -20,6 +20,10 @@ Three parts, and it helps to say them out loud to the user in this order:
 2. **A resource server.** One route, `/mcp`, that checks the token and runs the tool.
 3. **The tools.** The app's own verbs, the same ones the buttons call.
 
+**There is no session.** MCP is a stateless request/response protocol: no handshake to complete, nothing held open, nothing remembered between calls. Every request arrives carrying its own protocol version and the identity of the client that sent it, and the route is a pure function of that request and the token on it. This is why nothing below provisions Redis, and why the endpoint needs no sticky routing — it scales behind an ordinary load balancer, or a serverless platform that never runs the same instance twice. `mcp-handler` answers older clients from the same handler as current ones, so this is not a compatibility decision anybody has to make.
+
+The one place it shows up in your own code is the tools: **a tool cannot remember anything between calls.** If something has to survive from one call to the next — a paging cursor, the id of a half-finished draft — the server mints it and returns it, and the agent hands it back as an ordinary tool argument. It is never stashed server-side against a connection, because there is no connection to stash it against.
+
 **The endpoint is `[domain]/mcp`, not `/api/mcp`.** Next.js puts route handlers under `src/app/api/` by convention and it is an easy habit to follow straight past this, but nothing in the App Router requires that segment — `src/app/mcp/route.ts` serves `/mcp` perfectly well. It matters because this URL is not an internal detail: it is a string a person types into Claude's connector dialog, reads out to somebody, or puts in a README. `traillog.com/mcp` is what the ecosystem has settled on and what people guess first. Every other API route in the app stays under `/api`; this one is public-facing, so it doesn't. Better Auth keeps its own `/api/auth` base path unchanged.
 
 The agent never sees a password. It gets sent to the app's own sign-in page, the user approves it on a consent screen, and the agent walks away with a scoped token the user can revoke.
@@ -28,8 +32,10 @@ The agent never sees a password. It gets sent to the app's own sign-in page, the
 
 ```bash
 pnpm add better-auth @better-auth/oauth-provider
-pnpm add mcp-handler @modelcontextprotocol/server
+pnpm add mcp-handler @modelcontextprotocol/server zod
 ```
+
+`zod` is listed because tool schemas are written with it directly and `mcp-handler` wants a whole schema object rather than a shape it assembles itself. It is a dependency of this app, not something to rely on inheriting through another package.
 
 If `better-auth` is already installed from `references/auth.md`, upgrade it in the same command rather than leaving it behind — `@better-auth/oauth-provider` declares it as a peer dependency, and a version skew between the two fails later, at a confusing moment, rather than at install time.
 
@@ -77,7 +83,8 @@ export const auth = betterAuth({
       loginPage: "/sign-in",
       consentPage: "/oauth/consent",
 
-      // Claude has no account here in advance, so it registers itself on first connect.
+      // The fallback door for clients that can't identify themselves any other
+      // way — see "How the agent gets a client id" below before changing these.
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
 
@@ -103,9 +110,25 @@ export const auth = betterAuth({
 });
 ```
 
-`allowUnauthenticatedClientRegistration` sounds alarming and is required: the agent registers *before* anybody has signed in, because signing in is what it is about to ask for. Registration creates a client record, not access — nothing can be read until a human approves it on the consent screen. The rate limit is there because registration is the one endpoint an anonymous caller can reach, and each fresh connection makes a new client row.
+This app is the authorisation server, so one requirement lands on it directly: **the authorisation response has to carry the `iss` parameter**, naming the issuer, and clients are expected to check it against the issuer they started with before redeeming the code. `@better-auth/oauth-provider` emits it. The `mcp()` and `oidcProvider()` plugins it replaces do not, which is the concrete version of the warning at the top of this file about reaching for the wrong plugin.
 
-This changes the schema, so regenerate and migrate:
+### How the agent gets a client id
+
+An agent that has never met this app needs a `client_id` before it can ask for anything. There are two mechanisms, and knowing which is which is what keeps the two options above from looking arbitrary.
+
+**Client ID Metadata Documents are what the spec now prefers.** The client's `client_id` *is* an HTTPS URL, and that URL serves a small JSON document describing the client — its name, its redirect URIs. The authorisation server fetches it, checks the document's own `client_id` matches the URL it came from, and validates the redirect URI against it. Nothing is registered, so there is no anonymous write endpoint and no row created per connection.
+
+**Dynamic registration is the older mechanism and is now deprecated**, though it stays in the spec through a deprecation window. It is what those two `allow*` options above enable: the agent POSTs its details and gets a `client_id` back.
+
+Support both, and do not be tempted to turn dynamic registration off early. **The client picks**, working down from credentials it already has, to metadata documents if this server advertises them, to dynamic registration if it doesn't — so a server that drops the last rung strands every agent that hasn't moved up yet.
+
+For the metadata-document half, Better Auth ships `@better-auth/cimd`, which plugs into the `clientDiscovery` extension point on `oauthProvider` and adds `client_id_metadata_document_supported` to the discovery document by itself. Step 2's research establishes whether the release you are installing has it; if it does, add it, and leave the dynamic-registration options in place beside it.
+
+`allowUnauthenticatedClientRegistration` sounds alarming and is required for the fallback to work at all: the agent registers *before* anybody has signed in, because signing in is what it is about to ask for. Registration creates a client record, not access — nothing can be read until a human approves it on the consent screen. The rate limit is there because registration is the one endpoint an anonymous caller can reach, and each fresh connection makes a new client row.
+
+One more thing the spec now asks of clients, worth knowing because it is where sign-in from a terminal breaks: a client registering dynamically must declare an `application_type`, and command-line and desktop tools declare `native` so that loopback redirect URIs are accepted. Omitting it means `web`, under which a `localhost` redirect can be rejected outright.
+
+The plugin changes the schema, and so does adding client discovery beside it — settle both before running this, so it is one migration rather than two:
 
 ```bash
 pnpm dlx @better-auth/cli@latest generate --config src/lib/auth.ts --output src/lib/db/auth-schema.ts -y
@@ -238,8 +261,12 @@ const handler = withMcpAuth(
   },
 );
 
-export { handler as GET, handler as POST, handler as DELETE };
+export { handler as POST };
 ```
+
+**POST only.** Older versions of this route exported `GET` for a standing message stream and `DELETE` to tear a session down; both went when sessions did, and even a long-lived notification stream is now the response to a POST. Leaving them exported would route them into a handler that refuses them anyway. Not exporting them means Next.js answers `405 Method Not Allowed`, which is exactly what the spec asks a current server to say to a client still trying the old shapes.
+
+Do not give this route the permissive CORS headers the two discovery documents get. Those are public metadata and are meant to be readable from anywhere; this is the route that carries the token. A server is required to check the `Origin` header when one is present and refuse a request that doesn't belong, and a blanket `Access-Control-Allow-Origin: *` copied down from the well-known routes quietly removes that.
 
 **`required: true` is not optional, despite the name.** It defaults to `false`, and with the default a request carrying no token runs the tools anyway. Nothing looks broken — the app serves unauthenticated traffic, Claude never receives a 401, and so it never starts the sign-in flow at all. This is the single most expensive line to leave out.
 
@@ -383,6 +410,7 @@ export function registerTools(server: McpServer) {
 - **Reads and writes are separate tools.** Never one tool with a `method` or `action` argument. Anthropic rejects catch-all tools outright in connector review, and it makes the next rule impossible.
 - **Every tool declares `readOnlyHint: true` or `destructiveHint`.** These drive whether Claude runs a tool without asking. Label a write as read-only and it will fire without confirmation.
 - **The description says what it does and when to use it.** It does not contain instructions aimed at the model, and it does not oversell — a description that claims more than the tool does is how an agent picks the wrong one.
+- **A tool that is missing something says so in its description and lets the model ask.** `log_hike` above does this — "Ask them for the trail and date if either is missing" — and for an app like this it is the whole answer. Do not reach for sampling, roots, or logging to get it instead: all three are deprecated. The protocol's own route for a server that needs more input is to return an `input_required` result the client retries, and it is rarely worth the machinery here.
 - **Every list tool takes a `limit` with a hard maximum.** Results are capped near 150,000 characters on Claude.ai and around 25,000 tokens in Claude Code. An uncapped list either truncates mid-JSON into something unparseable, or hands a single call the entire account. Cap it in the schema *and* in the query, and return a cursor if there is more.
 - **Destructive tools need a reason to exist.** Deleting is nearly always better done by the person, in the app. If the interview genuinely called for it, require an id the agent had to read first, mark it `destructiveHint: true`, and say so in the description.
 - **Names stay under 64 characters** and read as `verb_noun`.
@@ -404,7 +432,7 @@ Read the pending request through the plugin's client (`oauthProviderClient` on `
 - **Whose account it will act as** — their email, visible, so a signed-in-as-the-wrong-person mistake is caught here.
 - Two buttons of equal weight. Approve is not the primary-coloured one.
 
-Accepting posts to `/api/auth/oauth2/consent`. Do not auto-approve, and do not skip the screen for "trusted" clients — with dynamic registration any client can call itself anything.
+Accepting posts to `/api/auth/oauth2/consent`. Do not auto-approve, and do not skip the screen for "trusted" clients — a client's name is chosen by the client, whether it registered dynamically or handed over a metadata document it hosts itself, so anything can call itself anything.
 
 ### Connected apps
 
@@ -444,15 +472,29 @@ curl -si -X POST http://localhost:3000/mcp | head -20
 
 The third must be a `401` carrying a `WWW-Authenticate: Bearer ... resource_metadata="..."` header. A `200` means `required: true` is missing.
 
-One thing this file could not confirm: whether Better Auth matches Claude Code's loopback redirect port-agnostically. Claude Code listens on a fresh ephemeral port each time and registers `http://localhost/callback`. If sign-in from Claude Code fails at the redirect step with a mismatch, that is the cause — check the plugin's current redirect-matching options rather than working around it.
+That third command deliberately sends nothing but the method — it is asking "is auth wired?", and the answer arrives before the request body is ever looked at. It is **not** a test of whether the endpoint speaks MCP, and it can't be: a real call carries an `MCP-Protocol-Version` header and an `Mcp-Method` header naming the RPC, plus an `Mcp-Name` header when the method is one that names a thing (`tools/call`, `resources/read`, `prompts/get`). Headers that disagree with the body are rejected with a `400`. To check the protocol itself, send `server/discover` — the request that replaced the old handshake, needs no session, and lists what the server supports:
+
+```bash
+curl -s -X POST http://localhost:3000/mcp \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'Mcp-Method: server/discover' \
+  -H "MCP-Protocol-Version: $VERSION" \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"$VERSION\"}}}" | jq
+```
+
+`$VERSION` is the revision the installed SDK implements and has to be identical in the header and in `_meta` — take it from the SDK rather than typing one in, because a guess fails as a mismatch rather than as a version error. Getting a token out of the flow by hand is more trouble than it is worth; the practical way to run this is to copy one from a connection Claude Code has already made.
+
+If sign-in from Claude Code fails at the redirect step, the cause is almost always redirect matching: it listens on a fresh ephemeral port each time and registers a loopback callback, and a client registering dynamically has to declare `application_type: "native"` for a `localhost` redirect to be accepted at all — the default is `web`, under which it can be refused. Check that the client sent it and that the plugin's redirect matching is port-agnostic, rather than working around it by widening what the app accepts.
 
 ## Going to production
 
 - `BETTER_AUTH_URL` becomes the real public URL on the host. That is the entire change; everything else derives from it.
 - Give the user the connector URL — their domain plus `/mcp`, so `https://traillog.com/mcp` — and show them where it goes in Claude. They will not find it on their own.
 - If the host sits behind a proxy that rewrites the origin, pass `resourceUrl` to `withMcpAuth` explicitly. On Vercel the forwarded headers are already right.
-- Dynamic registration creates a client row per fresh connection. Fine for one person; if the app gets popular, mention that old unused clients are worth pruning.
-- Two things on Better Auth's roadmap remove code from this file: serving the protected-resource document natively, and client metadata documents, which replace dynamic registration outright. Both are worth taking when they land, and both need a database migration — so take them deliberately, not by accident during an unrelated upgrade.
+- Dynamic registration creates a client row per fresh connection. Fine for one person; if the app gets popular, mention that old unused clients are worth pruning. Clients that identify themselves with a metadata document instead don't create rows at all, so this shrinks as the ecosystem moves across.
+- Two things remove code from this file when they are available on the release you install. Serving the protected-resource document natively is still on Better Auth's roadmap; client metadata documents have already landed, as `@better-auth/cimd`, and are the deprecated dynamic-registration path's replacement. Both change the schema — so take them deliberately, not by accident during an unrelated upgrade.
 
 ## Harnesses that can't do OAuth
 
@@ -464,6 +506,9 @@ Don't build it unless the user asks for it specifically and understands that. If
 
 - The endpoint answers at `/mcp` — `src/app/mcp/route.ts` — and there is no `src/app/api/mcp/` directory left behind.
 - An unauthenticated `POST /mcp` returns `401` with a `WWW-Authenticate` header containing `resource_metadata`, not a `200`.
+- `GET /mcp` and `DELETE /mcp` return `405` — the route exports `POST` and nothing else.
+- The authorisation server document advertises whichever registration mechanisms are actually wired: `registration_endpoint` for dynamic registration, and `client_id_metadata_document_supported` as well if `@better-auth/cimd` was available and added.
+- The redirect back from the consent screen carries an `iss` parameter matching the issuer in the authorisation server document.
 - Both `.well-known` documents return JSON, and two pairs match character for character: the protected-resource document's `resource` against `validAudiences[0]` in `src/lib/auth.ts`, and its `authorization_servers[0]` against the `issuer` in the authorisation-server document. No trailing slash on either.
 - `offline_access` appears in the authorisation server document and does not appear in the protected-resource document.
 - Adding the server in Claude Code opens the app's own sign-in page, then a consent screen wearing the app's design, and the tools appear afterwards.

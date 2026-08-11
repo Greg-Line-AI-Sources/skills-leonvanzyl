@@ -118,6 +118,8 @@ Each gets the same brief with its own packages filled in:
 
 > Find the current stable release of `<packages>`. Report: the latest stable version of each; anything deprecated, renamed, moved to a different package, or removed within the last two majors; the current import paths and function signatures for `<the specific things this reference file uses>`; **any capability added since that would replace hand-written code in `references/<file>.md`**; and any migration note that would break what's in there. Prefer the package's own docs and changelog over blog posts or search summaries, and check what is actually published on the registry rather than what a docs page claims. Say plainly what you verified against a primary source and what you inferred.
 
+**The agent-access branch gets one extra sentence in its brief**, because packages are not the only thing that moves under it: *establish the current revision of the Model Context Protocol specification, and check `references/mcp.md`'s assumptions against that revision's changelog and its registry of deprecated features.* A protocol revision can deprecate something the file relies on without any package changing its name or its signature, and the brief above would sail straight past it. No other branch sits on a spec that versions independently of its libraries.
+
 Each reference file carries a `Last verified` date at the top. Use it to size the effort: a file verified recently needs a confirmation pass, one verified a year ago needs the assumption that something has moved.
 
 Then reconcile, before installing anything:
