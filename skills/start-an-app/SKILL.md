@@ -1,6 +1,6 @@
 ---
 name: start-an-app
-description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, optional agent access over MCP so tools like Claude can use the app, a real landing page and dashboard, and an account settings area with system logs and debugging built in.
+description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, optional agent access over MCP so tools like Claude can use the app, a real landing page and dashboard, an account settings area with system logs and debugging built in, and a closing pass that proves the result actually builds, serves and does what was agreed rather than taking the builder's word for it.
 ---
 
 # Start an App
@@ -27,6 +27,7 @@ Turn an idea into a running web app. Understand the idea properly first, then bu
 - **Anything the app does out of sight is visible and controllable from inside it.** If the app sends an email, runs work in the background, or acts on a schedule, the user can see it happened, read why it failed, stop it, and try it again — in the app, not by reading logs on a hosting dashboard. Building something the user cannot watch is not finished.
 - **Never write or accept a version number.** Not in an install command, not in a `package.json` snippet, not in prose, not a Docker image tag. No file in this skill pins one, and none should ever gain one. Every install takes the **current stable** release, and Step 2 is what establishes what that is. A version written into a skill file is a lie with a timestamp on it: it goes stale in silence and builds the app against last year's API.
 - **Nothing deprecated, ever.** If the current release deprecates, renames, or supersedes something a reference file uses, use the replacement — not the old path that "still works". Still working is what deprecated means; it is a removal notice with a delay on it, and shipping onto one hands the user a rewrite they didn't ask for.
+- **A check that wasn't run is named, never claimed.** Saying the app does something because you wrote the code that should make it do it is recall, not verification. Run the check where you can; where you can't — no browser, no key, no domain yet — say which one you couldn't do and what it would need. The user reads silence as success.
 - All commands, package names, and config live in the reference files, never in this file. Load only the references for the branches the user chose.
 - If a reference command fails because a tool changed (renamed flag, different init flow), check that tool's official docs, use the current equivalent, finish the job, and tell the user at the end that this skill's reference file needs a refresh.
 
@@ -153,7 +154,7 @@ Get a clear go-ahead. Adjust anything they push back on. If the answer reopens w
 
 ## Step 4 — Scaffold
 
-Work through these in order. Each reference has a **Verify** section — complete it before moving on. Every path in them is relative to the current working directory.
+Work through these in order. Each reference has a **Verify** section — complete it before moving on. Those are your own check as you go; Step 6 is the one that has to survive a command. Every path in them is relative to the current working directory.
 
 1. Base project → `references/stack.md`
 2. Database (SQLite or Postgres-in-Docker branch) → `references/database.md`
@@ -184,21 +185,34 @@ This is not a polish pass; it is most of the value. The scaffold in Step 4 is in
 - If agent access was chosen, the tools are named for the **verbs** too — `log_hike`, not `create_item` — and they are the handful of things someone would actually ask for, not one per table.
 - Done when: someone opening the app would know what it is without being told, and the user can do the main thing the app exists for, end to end.
 
-## Step 6 — Verify and hand off
+## Step 6 — Prove it
 
-- The dev server starts cleanly and the home page renders.
-- `drizzle/` contains generated migration files, `pnpm db:migrate` has been run, and creating one real record works end to end. No schema was ever pushed.
-- The `build` script runs `db:migrate` before `next build`, so a deploy applies pending migrations instead of shipping new code onto an old schema.
-- If sign-in was chosen: signing up, signing out, and signing back in works; `/dashboard` redirects when signed out and shows their own data when signed in.
-- If email was chosen: with no API key set, sending prints the message to the terminal and records it; with a key set, a test send reaches `delivered@resend.dev` and the log shows it. With sign-in too, signing up sends a confirmation and "forgot password" actually resets a password.
-- If uploads were chosen: uploading a file through the app's own UI saves it and it renders after a refresh.
-- If payments were chosen: the test-mode checkout completes and the paid state is visible server-side.
-- If AI was chosen: the feature works against a real key, and it is the feature the interview asked for rather than a bare chat box.
-- If background jobs were chosen: the dev server at http://localhost:8288 shows the run and its steps, a deliberate failure retries and is visible, and the job's row ends in the right state.
-- If agent access was chosen: adding the server in Claude Code signs in through the app's own pages and its consent screen, a tool returns only that account's data, a second account cannot reach the first one's records, and revoking the connection in settings stops the next call.
-- Where there is sign-in: `/settings` is reachable from the app's navigation, the profile saves, the password changes, another device can be signed out, and deleting a test account really removes it and its data.
-- The system page exists, shows what is and isn't configured without printing a single key or token, and is refused server-side to a second, non-admin account.
-- **Missing keys degrade, never crash.** With `.env` values absent, the app still starts and the affected feature shows a friendly "not configured yet" notice.
+The app is built. Nothing has established that it works. The twelve Verify sections you just completed were all confirmed by the same agent that wrote the code they check, and recall is not evidence — an app can satisfy every one of them while failing to compile.
+
+`references/verify.md` has the commands: types, schema drift, the build, lint, the app served in production mode, every route answering, two accounts against each other, and the app with its keys taken away. Read the output of each. Having written the code a command tests is the reason to run it, not a reason to skip it.
+
+Two points of order matter enough to say here, because getting either wrong does damage:
+
+- **Schema before build.** `build` runs `db:migrate` first, so reaching it with an ungenerated schema edit outstanding applies SQL nobody read — the one thing `references/database.md` says never to do, performed by the step meant to catch it.
+- **The user signs up before any probe account exists.** The first account created becomes the admin. A fixture that takes that place, and is then deleted, locks the user out of their own system page.
+
+Where a check needs a browser, a provider, or a person, `references/verify.md` lists it. Name what you couldn't run.
+
+## Step 7 — Fresh eyes
+
+The gate proves the app builds, serves and answers. It cannot tell whether the app *does* anything — an empty project passes every command in it, because nothing leaks when there is nothing to leak. So the last check is the one the builder cannot perform on itself.
+
+**Dispatch the critics in a single message so they run at once**, the same way Step 2 does: promise-keeping and looks-like-theirs always, ownership wherever there is sign-in, operability scaled to the branches that ran. The briefs are in `references/verify.md`.
+
+**They check the app against the Step 3 build sheet, and against nothing else.** That sheet is the only bar here, because it is the one thing the user actually approved — and they approved a description of an app without being able to read the code they were handed. Closing exactly that gap is the whole job. Critics report where the app diverges from the sheet; they never propose a different sheet. Anything that would change what the app *is* goes to the user at hand-off, the same as it would have gone to them at Step 3.
+
+They read evidence, not the running app. Four agents cannot share a port or a browser between them, so capture everything once during Step 6 and hand it over. Findings come back as `broken`, `missing` or `worth knowing`; only the first two are fixed now, and no fix widens the gate or changes scope.
+
+**Two rounds, then stop and report what's left.** A third round is where an agent starts editing code it doesn't understand to make a report go away. Tell the user this step is happening, in one line — otherwise they are watching a terminal do nothing.
+
+## Step 8 — Hand off
+
+- Every check that could not be run is named, with what it would need — a browser, a domain, a payment key — as a short list they can work through in a minute once the app is open. Findings left unfixed after Step 7, and any finding you disagreed with, go here too, one line each with the reason.
 - Anything Step 2's research contradicted, or any reference command that had to be changed on the fly, is named at the end — which file, what was wrong — so this skill can be corrected. Say it to the user in one line; they may be the person who fixes it.
 - Close with a plain-language summary: how to start the app (including `pnpm db:up` if Postgres is in Docker), what each entry in `.env` is for, and two or three sensible next steps.
 - Show them the system page and say what it's for. It is the answer to "why didn't that email arrive?" and "is that still running?", and they will not find it on their own.
