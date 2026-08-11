@@ -27,6 +27,7 @@ npx skills add leonvanzyl/skills --skill <skill-name>
 | Skill | Description |
 | ----- | ----------- |
 | [start-an-app](skills/start-an-app) | Interview-driven app scaffolder: asks what you're building in plain language, recommends the right options (SQLite vs Postgres in Docker, sign-in, transactional email, file uploads, payments, AI features, background jobs), and builds a working Next.js app that's yours from the first commit — not a template. Every app ships with account settings and a system page for logs and debugging, and the build ends by proving itself — commands that pass or fail, then a fresh set of agents checking the result against what you agreed. |
+| [deploy-an-app](skills/deploy-an-app) | Takes a Next.js app that runs on your machine and puts it live on Vercel — provisioning the database and file storage, wiring email, background jobs, payments and agent access, and setting every environment variable before the first build so there's one deploy rather than a fix-and-redeploy loop. Asks for the handful of things only a human can do (OAuth callback URLs, DNS records) once, in a single sitting, instead of one failed build at a time. Ends by checking the live site with commands, and says plainly what it couldn't check. |
 
 ## Adding a new skill
 
