@@ -126,6 +126,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         {/* Notifications — only if email was set up */}
         {/* Connected apps — only if agent access was set up */}
         {/* Billing — only if payments were set up */}
+        {/* Cookie preferences — only if a consent banner was built */}
         {isAdmin && <Link href="/settings/system">System</Link>}
       </nav>
       <main className="flex-1 space-y-6">{children}</main>
@@ -260,6 +261,16 @@ Link the page from the app's account menu as well as the settings nav. Someone w
 
 Only if payments were set up. There is nothing to build: show the current plan from the server-side subscription state, then link to the provider's hosted portal that `references/payments.md` already wired (`authClient.customer.portal()` for Polar, the Stripe equivalent otherwise). Do not rebuild cancel, invoice, or card-change screens.
 
+## Cookie preferences — `/settings/cookies`
+
+Only if `references/legal.md` built a consent banner. Most apps here have no banner, so most have no tab — and an app that tracks nobody must not grow a page implying it might.
+
+There is almost nothing to build: read the consent cookie, show what it currently says in the app's own words ("Analytics: off"), and reopen the same dialog the banner uses. One component, two entry points — never a second preferences screen that drifts from the first.
+
+**Withdrawing has to take effect, not just be recorded.** Turning a category off clears what the app can clear and stops that script being rendered on the next request, which is the same mechanism `references/legal.md` describes and the reason the choice lives in a cookie the server reads. A preferences page that writes a value while the tag keeps firing is a worse lie than no page at all.
+
+Link it from the footer too. Someone looking for it is signed out as often as not.
+
 ## Danger zone — bottom of `/settings/account`
 
 A separate card, visually distinct, with real whitespace between it and anything harmless above it. Deletion is immediate and permanent — there is no grace period and no undo, so the confirmation has to carry the weight.
@@ -343,5 +354,6 @@ Do not lock the app. Let people look around, and gate only the things that would
 - Deleting a test account sends the confirmation email, the link removes the account and its data, and signing in with it afterwards fails.
 - A second account cannot see the first account's data anywhere in the settings area, and `/settings/system` is not in its navigation.
 - Agent access branch: Connected apps lists a real connection with a last-used time, and revoking it makes the next tool call fail rather than only clearing the row.
-- Every section that exists corresponds to something this app actually has — no empty Billing tab, no Notifications tab without email.
+- Every section that exists corresponds to something this app actually has — no empty Billing tab, no Notifications tab without email, no Cookie preferences tab in an app with no banner.
+- Consent branch: the preferences page shows the current choice, reopens the same dialog the banner uses, and turning a category off actually stops that script rendering on the next request.
 - With `.env` values absent, the settings pages still render and the affected controls show a friendly "not configured yet" note instead of crashing.

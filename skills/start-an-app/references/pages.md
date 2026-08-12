@@ -46,7 +46,7 @@ Write it about *their* product, from the interview. Structure that works for alm
 2. **Hero** — what it is in one sentence a stranger understands, one supporting line, one primary action. Their words from the interview, not "Welcome to MyApp".
 3. **What you can do** — three or four real capabilities, named concretely ("Log a hike with photos and notes"), not adjectives ("Powerful. Fast. Simple.").
 4. **Pricing** — only if payments were set up, showing the real product name and price from `references/payments.md`.
-5. **Footer** — name, year, and only links that exist.
+5. **Footer** — name, year, and only links that exist. This is where the legal pages go if there are any: `references/legal.md` runs after this file and decides whether this app owes a privacy policy or terms at all, so leave the footer somewhere it can add them, and add nothing on spec. Where it also built a consent banner, the footer carries the **Cookie preferences** control that reopens it.
 
 **Never fabricate credibility.** No invented testimonials, customer quotes, company logos, star ratings, user counts, "trusted by 10,000 teams", or press mentions. The app has no users yet and everyone reading the page knows it. If a section would need social proof to work, leave the section out — an honest page with three real features beats a fake one, and fake reviews are the kind of thing that gets a real product in real trouble later.
 
@@ -92,6 +92,7 @@ Scope every query by the session user. On a multi-user app, a query that forgets
 
 - Signed out, `/` renders the right front door for this app, and every visible string is about their product.
 - No invented testimonials, logos, ratings, or user numbers anywhere.
+- Every footer link resolves, and there is no link to a legal page this app was never going to have.
 - Signed out, visiting `/dashboard` redirects to sign-in.
 - Signing in lands on the dashboard, which shows the signed-in user and their own data.
 - Sign out returns to the signed-out state, and `/dashboard` is protected again.

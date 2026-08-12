@@ -1,6 +1,6 @@
 ---
 name: start-an-app
-description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, optional agent access over MCP so tools like Claude can use the app, a real landing page and dashboard, an account settings area with system logs and debugging built in, and a closing pass that proves the result actually builds, serves and does what was agreed rather than taking the builder's word for it.
+description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, optional agent access over MCP so tools like Claude can use the app, a real landing page and dashboard, an account settings area with system logs and debugging built in, the legal pages and cookie consent an app of that kind actually owes its users, and a closing pass that proves the result actually builds, serves and does what was agreed rather than taking the builder's word for it.
 ---
 
 # Start an App
@@ -24,6 +24,7 @@ Turn an idea into a running web app. Understand the idea properly first, then bu
 - **A tool is another caller, never a second way in.** If the app is opened up to AI agents, every tool goes through the same functions, the same ownership checks and the same log as the buttons do, and takes the user from the token rather than from anything the model passed. `references/mcp.md`.
 - Prefer choices that survive deployment. Where a feature works differently in production (uploads, Postgres), the local setup and the deployed setup must be the same code switched by an environment variable — never a second code path the user has to remember to change.
 - **Every app gets a settings area.** Not as a finishing touch — from the first commit, scaled to what the app has. Accounts mean a profile, verification status, password, devices, and a way to leave. Every app, accounts or not, gets a system view: what's configured, what happened, what's running. `references/settings.md` and `references/ops.md`.
+- **What the app owes its users legally is worked out, never asked.** Whether it needs a privacy policy, terms, or a cookie banner follows from what it is and what it loads — a personal journal owes none of them, a public product people sign up for owes the first two, and a banner is owed only where something non-essential actually loads, which the session cookie is not. Decide it, build exactly that, and put the call on the build sheet in one line so the user reads a decision rather than an oversight. `references/legal.md`.
 - **Anything the app does out of sight is visible and controllable from inside it.** If the app sends an email, runs work in the background, or acts on a schedule, the user can see it happened, read why it failed, stop it, and try it again — in the app, not by reading logs on a hosting dashboard. Building something the user cannot watch is not finished.
 - **Never write or accept a version number.** Not in an install command, not in a `package.json` snippet, not in prose, not a Docker image tag. No file in this skill pins one, and none should ever gain one. Every install takes the **current stable** release, and Step 2 is what establishes what that is. A version written into a skill file is a lie with a timestamp on it: it goes stale in silence and builds the app against last year's API.
 - **Nothing deprecated, ever.** If the current release deprecates, renames, or supersedes something a reference file uses, use the replacement — not the old path that "still works". Still working is what deprecated means; it is a removal notice with a delay on it, and shipping onto one hands the user a rewrite they didn't ask for.
@@ -144,11 +145,12 @@ Restate the plan in plain words before touching anything. Example shape:
 > **Photos:** saved in the project while you build; they move to cloud storage when you deploy.
 > **From Claude:** you'll be able to log a hike or ask about past ones from Claude itself, without opening the app — and see and revoke that access from inside it.
 > **Also included:** a settings page where you can change your password and delete your account, and a system page showing what's set up and what's happened.
+> **Legal:** nothing needed — it's just you, and nothing here tracks anyone, so no privacy policy, no terms, no cookie banner.
 > **Not in version one:** sharing hikes with friends, maps, and the stats page — easy to add once the basics feel right.
 >
 > Sound right?
 
-Include the data model and the explicit **not in version one** list — those two lines are what stop a rewrite later. Also mention anything that needs something from them before it can work (Docker running, an API key, a domain for email, a provider account), so there are no surprises mid-build.
+Include the data model and the explicit **not in version one** list — those two lines are what stop a rewrite later. The **legal** line goes in either way and is a statement, not a question: this example says nothing is needed and why, and a public product would name the pages it gets instead. `references/legal.md` makes the call. Also mention anything that needs something from them before it can work (Docker running, an API key, a domain for email, a provider account), so there are no surprises mid-build.
 
 Get a clear go-ahead. Adjust anything they push back on. If the answer reopens what the app *is* rather than tweaking a detail, go back to Step 1a — that's cheaper now than after the schema exists.
 
@@ -166,10 +168,11 @@ Work through these in order. Each reference has a **Verify** section — complet
 8. Background jobs, if chosen → `references/jobs.md`
 9. Landing page and dashboard → `references/pages.md`
 10. Agent access, if chosen → `references/mcp.md` (requires sign-in)
-11. Account settings → `references/settings.md` (requires sign-in; skip only if there is no sign-in)
-12. System visibility → `references/ops.md` (always)
+11. Legal pages and cookie consent, as much as this app owes → `references/legal.md` (decided, never asked; often nothing)
+12. Account settings → `references/settings.md` (requires sign-in; skip only if there is no sign-in)
+13. System visibility → `references/ops.md` (always)
 
-The order matters: payments, uploads and agent access all extend what sign-in built; the pages step needs the lot in place; and settings and system visibility hang off the navigation the pages step creates. Agent access sits after the pages step because its consent screen has to look like the rest of the app, and before the last two because both grow a section only if it ran. Anything that changes `src/lib/auth.ts` means regenerating the Better Auth schema and running `db:generate` + `db:migrate` again — the reference files say where.
+The order matters: payments, uploads and agent access all extend what sign-in built; the pages step needs the lot in place; and settings and system visibility hang off the navigation the pages step creates. Agent access sits after the pages step because its consent screen has to look like the rest of the app, and before the last three because each grows a section only if it ran. Legal comes after every feature branch for the same reason in reverse — the privacy page has to describe all of them, and it can only be accurate about branches that already exist — and before settings, which grows a cookie-preferences section only if a banner was built. Anything that changes `src/lib/auth.ts` means regenerating the Better Auth schema and running `db:generate` + `db:migrate` again — the reference files say where.
 
 The last two are not a polish pass to drop if time is short. They are what turns a scaffold into something the user can operate.
 
@@ -180,14 +183,14 @@ This is not a polish pass; it is most of the value. The scaffold in Step 4 is in
 - Name the project after their idea (package name, page titles, visible branding).
 - The schema tables are the **nouns** from Step 1a, each with a UUID primary key, and the ownership rule from Step 1b applied — a `userId` column (`text`, matching Better Auth) and every query scoped to it if data is private.
 - Build the real pages: the front door and dashboard from `references/pages.md`, real navigation, and the **verbs** from Step 1a wired up — including editing and deleting if the gap-check said so.
-- Seed nothing generic: every visible string should make sense for *their* app. No "Item", no "Welcome to Next.js", no lorem ipsum. This includes the settings area and the emails — a section called "Notifications" listing categories the app never sends, or an email signed "My App", is the same failure as a page of lorem ipsum.
+- Seed nothing generic: every visible string should make sense for *their* app. No "Item", no "Welcome to Next.js", no lorem ipsum. This includes the settings area, the emails, and the legal pages — a section called "Notifications" listing categories the app never sends, an email signed "My App", or a privacy policy about "user-generated items" in an app whose every other screen says "hikes", is the same failure as a page of lorem ipsum.
 - Build only the settings sections this app has. An empty Billing tab or a Notifications tab for an app that sends no email is worse than a missing one.
 - If agent access was chosen, the tools are named for the **verbs** too — `log_hike`, not `create_item` — and they are the handful of things someone would actually ask for, not one per table.
 - Done when: someone opening the app would know what it is without being told, and the user can do the main thing the app exists for, end to end.
 
 ## Step 6 — Prove it
 
-The app is built. Nothing has established that it works. The twelve Verify sections you just completed were all confirmed by the same agent that wrote the code they check, and recall is not evidence — an app can satisfy every one of them while failing to compile.
+The app is built. Nothing has established that it works. Every Verify section you just completed was confirmed by the same agent that wrote the code it checks, and recall is not evidence — an app can satisfy every one of them while failing to compile.
 
 `references/verify.md` has the commands: types, schema drift, the build, lint, the app served in production mode, every route answering, two accounts against each other, and the app with its keys taken away. Read the output of each. Having written the code a command tests is the reason to run it, not a reason to skip it.
 
@@ -214,6 +217,7 @@ They read evidence, not the running app. Four agents cannot share a port or a br
 
 - Every check that could not be run is named, with what it would need — a browser, a domain, a payment key — as a short list they can work through in a minute once the app is open. Findings left unfixed after Step 7, and any finding you disagreed with, go here too, one line each with the reason.
 - Anything Step 2's research contradicted, or any reference command that had to be changed on the fly, is named at the end — which file, what was wrong — so this skill can be corrected. Say it to the user in one line; they may be the person who fixes it.
+- Legal branch: say once, plainly, that the privacy and terms pages are a first draft assembled from what the app actually does rather than legal advice. Then list the fields in `src/lib/legal.ts` that only they can fill — usually a contact address and whose law governs the terms — as a short thing they can clear in a minute. Where there is no cookie banner, give the one-line reason and what would change it: "nothing here tracks anyone, so there's nothing to consent to — add analytics later and it'll need one."
 - Close with a plain-language summary: how to start the app (including `pnpm db:up` if Postgres is in Docker), what each entry in `.env` is for, and two or three sensible next steps.
 - Show them the system page and say what it's for. It is the answer to "why didn't that email arrive?" and "is that still running?", and they will not find it on their own.
 - Where local and production differ, spell out the one-time switch: connect a Blob store for uploads, point `POSTGRES_URL` at a hosted database, swap payment keys out of test mode, add the Resend key once the domain is verified, add the Inngest keys and sync the app, point `BETTER_AUTH_URL` at the real domain so agent tokens are issued for it. Each is a setting on the host, not a code change — say that, because it's the part people expect to be hard. The two that also need an action outside the host are verifying the email domain in DNS and syncing the app with Inngest after the first deploy; call those out by name.

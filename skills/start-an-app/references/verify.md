@@ -63,6 +63,8 @@ pnpm build
 
 Then read the route table it prints, which is free evidence nothing currently uses: **any route that renders one person's data must be `ƒ` (Dynamic), not `○` (Static).** A `○` on a page showing a user's rows means it was prerendered at build time, so every visitor gets the build machine's copy of somebody's data. That is a real leak the old Verify list could not see, and it costs nothing to look.
 
+**Consent branch: expect everything to be `ƒ`.** A consent banner reads a cookie in the root layout, which makes every route dynamic — so this check finds nothing on those apps. `ƒ` is the safe state, so that is a quiet check rather than a broken one; don't read it as a pass for something it never examined.
+
 ### 4 — Lint
 
 ```bash
@@ -97,6 +99,24 @@ done
 **No 500s.** `200`, or `307` to `/sign-in` for anything inside the dashboard group. Keep this output — it is the app's actual surface area, which is the one thing nobody could see before, and the promise-keeping critic is given it verbatim.
 
 **Do not blind-probe `route.ts` handlers.** A POST with side effects is not a check. The `.well-known` discovery documents from `references/mcp.md` are the exception and are safe to GET.
+
+**Legal branch: the pages answer signed out, and no blank shipped.** Whatever `references/legal.md` decided this app owes has to be reachable by a stranger — `200` from a cold client with no cookie, not a redirect to sign-in — and the ones it decided against must be absent rather than present and empty. Then read what the page actually served, because an unfilled detail renders as a marker that is easy to stop seeing:
+
+```bash
+for r in /privacy /terms /cookies; do
+  printf '%-12s %s\n' "$r" "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$r")"
+done
+curl -s http://localhost:3000/privacy http://localhost:3000/terms \
+  | grep -o "Needs your details[^<]*" | sort -u
+```
+
+**`404` is the pass for a page this app was never going to have.** A `200` on `/terms` for a one-person tool is the finding, not the reassurance — something got built on spec.
+
+Every line the grep prints is a field in `src/lib/legal.ts` nobody set. **That is not a gate failure** — only the user can supply a contact address or a governing jurisdiction. It is the hand-off list, and it is a failure only if it goes unnamed. What *is* a gate failure is a plausible placeholder that the grep can't see: check for one, because `[Your Company Name]` in a live privacy policy is what this marker exists to prevent.
+
+```bash
+grep -rniE '\[your |lorem ipsum|company name\]|example\.com' src/app/\(legal\) src/lib/legal.ts || echo "clean"
+```
 
 ### 7 — Two accounts
 
@@ -180,6 +200,7 @@ Then **name every check still not performed.** Do not omit them and do not claim
 - AI: the feature working against a real key, and being the feature the interview asked for rather than a bare chat box.
 - Jobs: a run and its steps at http://localhost:8288, a deliberate failure retrying visibly, and the job's row ending in the right state — all of which need `pnpm dev` rather than `pnpm start`.
 - Agent access: adding the server in Claude Code, going through the app's own sign-in and consent screen, and revoking the connection in settings stopping the next call.
+- Cookie consent, where a banner was built: that no third-party script is in the served HTML before a choice is made, that Reject is one click at the same visual weight as Accept, that no non-essential category starts ticked, and that the choice survives a reload and can be withdrawn from settings afterwards.
 
 These become a short "when you open it, check these" list at hand-off. **A check that was skipped and not named is a false pass**, and it is worse than never having listed it — the user reads silence as success.
 
@@ -276,6 +297,7 @@ Only when there is sign-in.
 > - A settings section for something this app doesn't have — a Billing tab with no payments, Notifications in an app that sends no email.
 > - An email signed with anything other than the app's own name.
 > - A landing page section that would need customers to be true: testimonials, logos, ratings, user counts, press. The app has no users and everyone reading knows it.
+> - A legal page with a blank nobody filled in, a clause about something the app doesn't do, or a footer link to a page that isn't there. Read any privacy or terms page the same way you read the rest: if it describes a different product, say so.
 >
 > If the app calls a noun or verb something different on screen than the sheet does, say where and what it calls it — that is usually a real disagreement rather than a synonym.
 >
