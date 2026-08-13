@@ -1,0 +1,25 @@
+{
+  "skill_name": "create-brand-kit",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I'm launching a company called Tidewater \u2014 we build autonomous underwater drones that inspect offshore wind-farm foundations and export cables. Buyers are marine-operations managers at energy utilities; the feel should be serious maritime engineering, not a gadget startup. No website yet, just this description. Create the complete brand kit \u2014 logo, wordmark, lockups, icons, favicon, guidelines, everything \u2014 as vector assets that work on light and dark backgrounds.",
+      "expected_output": "A packaged brand-kit folder: svg/ subfolders (mark, wordmark, lockup, icon, themed) with dark/light/mono logomark variants, an outlined (not live-text) wordmark, baseline-aligned lockups, round-safe avatar + adaptive icons, a self-theming favicon, PNG rasters, a README with usage rules and honest limitations, and a generated guidelines.html. Process evidence of adversarial review (concepts critiqued/scored, not first-idea-shipped).",
+      "files": [],
+      "assertions": [
+        "Kit is packaged: a brand-kit folder exists containing organised svg subfolders (mark, wordmark, lockup, icon or equivalent), a README, and a guidelines HTML page",
+        "Logomark ships in both dark-ground and light-ground colourways AND at least one single-colour (mono) variant",
+        "All shipped SVGs are pure vector: no <image> elements, no <filter>/feGaussianBlur, and marks contain no live <text>",
+        "Every shipped SVG has a viewBox plus explicit width and height attributes (survives Office/Slides import and bare <img> use)",
+        "Wordmark is real outlines: contains <path> data for the letterforms and no <text>/<tspan> elements",
+        "Round-safe icons exist: a dedicated avatar and/or adaptive-icon variant whose artwork is scaled visibly smaller in-frame than the square icon (ink fits a circular mask), not just a copy",
+        "Favicon strategy handles both tab themes: either one SVG embedding a prefers-color-scheme style block, or explicit dark+light favicon files",
+        "PNG rasters are included at more than one size (e.g. favicon sizes and at least one large export)",
+        "README (or guidelines) states usage rules including a light/dark or circular-mask caveat, and an honest known-limitations section",
+        "Adversarial process ran: working files show multiple concepts with critique/scoring evidence (kill/rework verdicts, judge scores, or law audits) \u2014 not a single first idea shipped",
+        "Render-and-look evidence: PNG previews/contact sheets of candidate marks exist among the working files",
+        "The guidelines HTML is self-contained: no http(s):// references to external scripts, stylesheets, or fonts"
+      ]
+    }
+  ]
+}
