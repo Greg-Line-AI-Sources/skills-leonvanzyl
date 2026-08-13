@@ -118,6 +118,37 @@ Every line the grep prints is a field in `src/lib/legal.ts` nobody set. **That i
 grep -rniE '\[your |lorem ipsum|company name\]|example\.com' src/app/\(legal\) src/lib/legal.ts || echo "clean"
 ```
 
+**Every app: the title in the tab.** One line, and it catches the single most template-smelling artefact a build can ship:
+
+```bash
+curl -s http://localhost:3000/ | grep -o '<title>[^<]*'
+```
+
+`Create Next App` is a failure, not a note.
+
+**Discoverability, whichever branch ran.** `references/seo.md` builds one of two opposite things, so check the one this app was meant to get:
+
+```bash
+for r in /robots.txt /sitemap.xml /llms.txt; do
+  printf '%-14s %s\n' "$r" "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$r")"
+done
+curl -s http://localhost:3000/robots.txt
+curl -s http://localhost:3000/sitemap.xml | grep -oE '<loc>[^<]+' | sed 's/<loc>//'
+```
+
+- **Kept-out-of-search branch:** `robots.txt` says `Disallow: /`, and `/sitemap.xml` and `/llms.txt` are `404`. A `200` on either means something got built on spec, the same finding as an orphan `/terms`.
+- **Public branch:** all three answer `200`, and **no line of that sitemap contains `/dashboard`, `/settings` or `/api`.** Those are pages a stranger is being invited to open; every one that redirects to sign-in is an error the user has to learn to ignore. Compare the list both ways against the route sweep above — a public page missing from the sitemap is the more common miss, and the sweep is the only place it shows.
+- Every `<loc>` is absolute and shares one origin. A mix of `http` and `https`, or a bare path, is a finding.
+- Neither `public/robots.txt` nor `public/sitemap.xml` exists — a static file silently shadows the generated one, and the generated one is the one with the right absolute URL in it.
+
+**Docs branch: the pages answer signed out, and nothing leaked into them.** They are public forever and indexed by the step above.
+
+```bash
+grep -rniE 'sk-|pk_|api[_-]?key|postgres://|localhost:[0-9]|\.vercel\.app' src/app/\(docs\) || echo "clean"
+```
+
+Then confirm the manifest and the files agree: every entry in `src/lib/docs.ts` has a `page.mdx`, and every `page.mdx` has an entry. One without the other is a dead sidebar link or a page nobody can reach.
+
 ### 7 — Two accounts
 
 Skip this and the next step entirely if the app has no sign-in.
@@ -201,6 +232,8 @@ Then **name every check still not performed.** Do not omit them and do not claim
 - Jobs: a run and its steps at http://localhost:8288, a deliberate failure retrying visibly, and the job's row ending in the right state — all of which need `pnpm dev` rather than `pnpm start`.
 - Agent access: adding the server in Claude Code, going through the app's own sign-in and consent screen, and revoking the connection in settings stopping the next call.
 - Cookie consent, where a banner was built: that no third-party script is in the served HTML before a choice is made, that Reject is one click at the same visual weight as Accept, that no non-essential category starts ticked, and that the choice survives a reload and can be withdrawn from settings afterwards.
+- Discoverability, public branch: that the Open Graph image renders as an image rather than an error, and what a shared link actually looks like in a chat app. `/opengraph-image` returning `200` proves the route works, not that the picture is right — and this is the check a browser tool can close cheaply, so run it if one is available.
+- Discoverability: whether the sitemap and canonical URLs are correct for the **real** domain. Everything the gate reads locally says `localhost`, which is expected here and wrong in production — it is proven by `APP_URL` on the host, not by anything runnable now.
 
 These become a short "when you open it, check these" list at hand-off. **A check that was skipped and not named is a false pass**, and it is worse than never having listed it — the user reads silence as success.
 
@@ -233,7 +266,7 @@ Three rules make this work, and each of them is load-bearing:
 >
 > **The user chose these things.** A decision you would have made differently is not a finding, and neither is anything on the sheet's *not in version one* list.
 >
-> **Never in scope:** tests, CI, error boundaries, performance, SEO, accessibility beyond what the sheet says, rate limiting, monitoring, refactors, folder structure, naming, comments, or any sentence beginning "consider adding".
+> **Never in scope:** tests, CI, error boundaries, performance, rate limiting, monitoring, refactors, folder structure, naming, comments, accessibility or search visibility beyond what the sheet says, or any sentence beginning "consider adding". A sheet line about being found — or about deliberately not being — is in scope like any other promise; *how well it would rank* is not.
 >
 > You are read-only. Do not run the app, start a server, or install anything. If you find yourself wanting to fix something, that is a finding, not a task.
 >
@@ -291,6 +324,7 @@ Only when there is sign-in.
 >
 > The tells, worst first:
 >
+> - The browser tab. Read the `<title>` the app actually serves: a framework default there is the first thing anyone sees and the last thing anyone checks.
 > - A framework word where the app has its own — "Item", "Entry", "Record", or a page titled "Dashboard" in an app whose sheet calls it something else.
 > - A heading describing the software rather than what the person does.
 > - An empty state that reads as breakage rather than a beginning, or a list with no empty state at all.
@@ -298,6 +332,7 @@ Only when there is sign-in.
 > - An email signed with anything other than the app's own name.
 > - A landing page section that would need customers to be true: testimonials, logos, ratings, user counts, press. The app has no users and everyone reading knows it.
 > - A legal page with a blank nobody filled in, a clause about something the app doesn't do, or a footer link to a page that isn't there. Read any privacy or terms page the same way you read the rest: if it describes a different product, say so.
+> - A documentation page describing a control that isn't in the app, a page for a feature the sheet ruled out, or a "coming soon". Follow one page's instructions through the code and say whether every button it names exists. Docs that describe a different product are the same finding as a privacy policy that does, and they cost the user a support email.
 >
 > If the app calls a noun or verb something different on screen than the sheet does, say where and what it calls it — that is usually a real disagreement rather than a synonym.
 >

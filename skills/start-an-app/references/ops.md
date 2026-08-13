@@ -47,6 +47,7 @@ export async function getSystemStatus() {
     { name: "Payments", ready: Boolean(process.env.POLAR_ACCESS_TOKEN), hint: "POLAR_ACCESS_TOKEN" },
     { name: "AI", ready: Boolean(process.env.OPENROUTER_API_KEY), hint: "OPENROUTER_API_KEY" },
     { name: "Agent access (MCP)", ready: Boolean(process.env.BETTER_AUTH_URL), hint: "BETTER_AUTH_URL — must be the app's public URL" },
+    { name: "Canonical URL", ready: Boolean(process.env.APP_URL ?? process.env.BETTER_AUTH_URL), hint: "APP_URL — the app's public address" },
   ];
 
   let database = false;
@@ -62,6 +63,8 @@ export async function getSystemStatus() {
 ```
 
 Render each as a row with a green/grey state and the plain-language hint — the *name* of the variable to set, never its value. "Not configured yet" is a normal state here, not an error: it is exactly what a half-built app looks like, and showing it as a warning trains the user to ignore warnings.
+
+The canonical URL row is the odd one out and earns its place anyway: it gates no feature, so nothing breaks without it — the sitemap and every canonical link just quietly point at `localhost` in production, which nobody notices until a search engine has already read them. `references/seo.md` sets it up; this row is where its absence becomes visible.
 
 ## Activity log — always
 
