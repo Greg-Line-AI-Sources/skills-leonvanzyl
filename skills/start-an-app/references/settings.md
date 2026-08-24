@@ -8,7 +8,7 @@ Last verified: 2026-08-09
 
 > **Hard rule: every panel here is built on Better Auth's own API.** Do not write a route that updates the `user` table directly, hashes a password by hand, or deletes a user row with Drizzle. Better Auth owns anything that belongs to a user — the same rule that governs payments — and going around it means sessions that don't get revoked, tokens that don't get cleaned up, and a password hash format that quietly diverges from the one sign-in checks against.
 >
-> If Better Auth's documentation and this file disagree on *how to structure the page*, this file wins. If they disagree on a method name or option, their docs win — update this file afterwards, because this is the fastest-moving dependency in the stack.
+> If Better Auth's documentation and this file disagree on *how to structure the page*, this file wins. If they disagree on a method name or option, their docs win — update this file afterwards, because this is the fastest-moving dependency in the stack. The `better-auth-best-practices` skill installed in Step 2a *is* that documentation, and is the first place to check every API used below; the `shadcn` skill installed alongside it is where the panels' components come from.
 
 ## Two settings that have to change first
 

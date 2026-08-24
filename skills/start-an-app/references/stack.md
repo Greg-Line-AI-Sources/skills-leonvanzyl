@@ -4,6 +4,8 @@ Last verified: 2026-07-21
 
 **Purpose:** Create the Next.js project that everything else builds on: TypeScript, Tailwind, App Router, shadcn/ui components.
 
+> **Read the `shadcn` skill before adding components, and `vercel-react-best-practices` before writing Next code.** Step 2a installed both. They are shadcn's and Vercel's own instructions for their own tools — on CLI flags, component composition, theming, and current Next patterns they outrank anything found by searching. This file owns the project layout and what goes where; they own how each piece is used.
+
 ## Install
 
 **The app is created in the current working directory, never in a subfolder.** The user is already standing in the folder they want the app to live in, so `package.json`, `src/`, and `next.config.ts` belong at its top level. Passing `.` as the project name does this — and there is no `cd` afterwards.

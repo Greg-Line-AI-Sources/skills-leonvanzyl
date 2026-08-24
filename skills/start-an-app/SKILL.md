@@ -1,13 +1,13 @@
 ---
 name: start-an-app
-description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, optional agent access over MCP so tools like Claude can use the app, a real landing page and dashboard, optional public help documentation, an account settings area with system logs and debugging built in, the legal pages and cookie consent an app of that kind actually owes its users, whether search engines and AI crawlers should find it at all, and a closing pass that proves the result actually builds, serves and does what was agreed rather than taking the builder's word for it.
+description: Interview the user in depth about what they actually want to build, then scaffold a working full-stack web app around it. Use when the user wants to start a new app, website, prototype, or SaaS; when they don't know what tech stack to pick; or when they want a solid working starting point fast. Covers requirements discovery, project setup, database (SQLite or Postgres in Docker), sign-in, transactional email, file uploads, payments, AI features, background jobs, optional agent access over MCP so tools like Claude can use the app, a real landing page and dashboard, optional public help documentation, a design system agreed with the user and written to DESIGN.md so every page matches, an account settings area with system logs and debugging built in, the legal pages and cookie consent an app of that kind actually owes its users, whether search engines and AI crawlers should find it at all, and a closing pass that proves the result actually builds, serves and does what was agreed rather than taking the builder's word for it.
 ---
 
 # Start an App
 
 Turn an idea into a running web app. Understand the idea properly first, then build. The result is the user's actual app from the first commit — their name, their pages, their data model, only the infrastructure they need. It should never feel like a template.
 
-**Understanding comes before scaffolding.** The interview is the most valuable part of this skill, not a formality to get through. Ten minutes of good questions produces an app the user recognises; skipping them produces a generic CRUD shell they have to rewrite. Do not run a single command until Step 3 is agreed.
+**Understanding comes before scaffolding.** The interview is the most valuable part of this skill, not a formality to get through. Ten minutes of good questions produces an app the user recognises; skipping them produces a generic CRUD shell they have to rewrite. The only commands before the build sheet is agreed are the skill installs in Step 2a; nothing touches the app itself until Step 3.
 
 ## Ground rules
 
@@ -19,7 +19,7 @@ Turn an idea into a running web app. Understand the idea properly first, then bu
 - **Never `drizzle-kit push`.** Schema changes always go through `db:generate` then `db:migrate`, every time, from the very first table.
 - **Ids are randomly generated UUIDs — except in Better Auth's tables.** Every table you define gets one. The tables Better Auth's CLI generates stay exactly as generated, which also means any column pointing at a user stays `text`, not `uuid`. `references/database.md` has both branches.
 - The app is scaffolded **in the current working directory** — that folder is the project root. Never create a subfolder for it and never `cd` into one; the user already chose where the app goes by being there.
-- The stack is fixed: Next.js, TypeScript, Tailwind, shadcn/ui, Drizzle, Better Auth. The interview chooses *within* it (which database, what kind of sign-in, email, uploads, payments, AI, background jobs, documentation, whether the app is meant to be found) — it never swaps out these pieces, and it never bolts a second framework alongside them. Documentation is pages in this app, not a docs platform beside it.
+- The stack is fixed: Next.js, TypeScript, Tailwind, shadcn/ui, Drizzle, Better Auth. The interview chooses *within* it (which database, what kind of sign-in, email, uploads, payments, AI, background jobs, documentation, whether the app is meant to be found, and how it looks) — it never swaps out these pieces, and it never bolts a second framework alongside them. Documentation is pages in this app, not a docs platform beside it.
 - **Better Auth owns anything that belongs to a user.** Where Better Auth has a plugin for an integration — payments above all — use the plugin, never the provider's standalone SDK wired in beside it. One source of truth for the user, one place customer ids and webhooks live.
 - **A tool is another caller, never a second way in.** If the app is opened up to AI agents, every tool goes through the same functions, the same ownership checks and the same log as the buttons do, and takes the user from the token rather than from anything the model passed. `references/mcp.md`.
 - Prefer choices that survive deployment. Where a feature works differently in production (uploads, Postgres), the local setup and the deployed setup must be the same code switched by an environment variable — never a second code path the user has to remember to change.
@@ -28,6 +28,8 @@ Turn an idea into a running web app. Understand the idea properly first, then bu
 - **Anything the app does out of sight is visible and controllable from inside it.** If the app sends an email, runs work in the background, or acts on a schedule, the user can see it happened, read why it failed, stop it, and try it again — in the app, not by reading logs on a hosting dashboard. Building something the user cannot watch is not finished.
 - **Whether the app should be found is asked, and both answers are built.** Only where it could plausibly be found — a public product or a content site. A personal or internal tool is never asked and never gets a sitemap; it gets a real title in the browser tab and a deliberate *keep me out of search results*, which is a deliverable rather than an omission. `references/seo.md`.
 - **Documentation is written only for what exists, and only where somebody would read it.** Most apps here need none. Where a product strangers sign up for wants help pages, four honest ones beat twenty, and a page describing a feature the app doesn't have is worse than no page at all — it sends someone looking for a button that isn't there. `references/docs.md`.
+- **Every app gets a written design system, and nothing overrides it later.** The look is asked about in the interview like anything else, written to `DESIGN.md` at the project root before the first screen exists, and expressed as theme tokens rather than as advice. From then on it is binding: a colour, a font size or a radius hardcoded into a component is a bug, not a shortcut, and "it looked better this way here" is how an app ends up with five blues. `AGENTS.md` and `CLAUDE.md` both point at it so that the next agent to open the project is held to it too. `references/design.md`.
+- **The maintainers' own skills come before searching.** shadcn, Vercel, Better Auth and Anthropic publish agent skills for their own libraries. Step 2a installs them globally, once; from that point they are the first place to look for anything about those libraries, ahead of a search, a blog post, or memory. Reading the file that ships with the API is faster than researching it and is right more often.
 - **Never write or accept a version number.** Not in an install command, not in a `package.json` snippet, not in prose, not a Docker image tag. No file in this skill pins one, and none should ever gain one. Every install takes the **current stable** release, and Step 2 is what establishes what that is. A version written into a skill file is a lie with a timestamp on it: it goes stale in silence and builds the app against last year's API.
 - **Nothing deprecated, ever.** If the current release deprecates, renames, or supersedes something a reference file uses, use the replacement — not the old path that "still works". Still working is what deprecated means; it is a removal notice with a delay on it, and shipping onto one hands the user a rewrite they didn't ask for.
 - **A check that wasn't run is named, never claimed.** Saying the app does something because you wrote the code that should make it do it is recall, not verification. Run the check where you can; where you can't — no browser, no key, no domain yet — say which one you couldn't do and what it would need. The user reads silence as success.
@@ -121,15 +123,65 @@ Now the branches. One at a time, each with a recommendation. **Don't ask what th
     → Where it applies, default is **yes**, and it's cheap: a sitemap, a `robots.txt`, an `llms.txt`, and a preview card for when the link gets shared. If the docs question above was a yes, mention those pages get indexed too — for most products that's the half people actually search for.
     → One sub-question, and only where the app's *content* is the product (a blog, a directory): whether AI crawlers may train on it. Search and citation crawlers are a different thing and worth allowing — that's how an assistant recommends the app with a link. `references/seo.md` splits the two.
 
-## Step 2 — Check what's current
+12. **"How should it look?"**
+    → **Asked of every app**, and asked *last* — a proposal is only worth making once you know what the app is, and a personal tool deserves a point of view as much as a product does. This is the one answer that touches every screen.
+    → Offer the three ways to answer in one breath, because people don't know which is allowed: *"Describe it however you like — 'calm and minimal', 'looks like Linear', 'warm, like paper'. Or paste in what you've already got — brand colours, a font, a whole design document, a style guide. Or say 'you pick' and I'll propose something for you to shoot down."*
+    → **If they paste something, it wins outright** — colours, fonts, spacing, tone, component conventions, all of it, used as given rather than as inspiration. Where it doesn't cover something the app needs (usually dark mode, or a radius), fill the gap in its spirit and say which parts were yours.
+    → **If they answer in words, play it back as decisions, not adjectives.** "Calm and minimal" becomes a named neutral base, one accent, a generous radius, a specific font — so they're correcting something concrete instead of agreeing with a mood.
+    → **If they say "you pick", propose — don't ask a second time.** Two or three directions with real names, one line each, drawn from what the app *is*: a developer tool, a children's reading tracker and an invoicing app should not look alike. Recommend one. `references/design.md` has how to choose.
+    → Whichever route it took, the answer becomes **`DESIGN.md` at the project root** in Step 4, and every page built afterwards is held to it.
 
-The branches are chosen, so now find out what building them actually involves *today*. Nothing in this skill names a version, deliberately — this step is where the versions come from. It costs one round of parallel subagents and prevents the expensive failure: an app built confidently against an API that moved.
+## Step 2 — Get the current facts
+
+The branches are chosen, so now find out what building them actually involves *today*. Two halves, in this order: **install the skills the maintainers of these libraries publish, then research only what those skills don't already answer.** Doing it the other way round spends a research round rediscovering what was one install away.
+
+### Step 2a — Install the official skills
+
+shadcn, Vercel, Better Auth and Anthropic each publish an agent skill for their own library. They are the instructions of the people whose API it is, kept current by them, and between them they cover most of what this build is made of — components, React and Next patterns, sign-in, the AI SDK, MCP tools. An agent that skips them spends the build searching for documentation that is already sitting on disk, and lands on blog posts that were written against an older release.
+
+**Install the whole set globally, before the research below and before the build sheet.** Globally — `-g` — for two reasons. The folder the user is standing in is about to become the app, and `create-next-app .` refuses to run in a directory that isn't empty; a project-level install would put `.claude/` and `skills-lock.json` there and force a workaround on every single build. And these are documentation for a fixed stack, not for one app: installed once, they are there for the next app, and for every session that opens this one afterwards.
+
+Say what you're doing in one line first, because six installs is a visible pause: "Before I plan this out, I'm pulling in the instruction manuals the people behind these tools publish — it saves me guessing at their documentation later." Then run them.
+
+```bash
+npx skills add https://github.com/shadcn-ui/ui --skill shadcn -g --agent claude-code -y
+npx skills add https://github.com/vercel-labs/agent-skills --skill vercel-react-best-practices -g --agent claude-code -y
+npx skills add https://github.com/vercel-labs/agent-skills --skill deploy-to-vercel -g --agent claude-code -y
+npx skills add https://github.com/better-auth/skills --skill better-auth-best-practices -g --agent claude-code -y
+npx skills add https://github.com/vercel/ai --skill ai-sdk -g --agent claude-code -y
+npx skills add https://github.com/anthropics/skills --skill mcp-builder -g --agent claude-code -y
+```
+
+`--agent claude-code -y` is what makes each one non-interactive; without both flags the command stops on a prompt with nobody there to answer it. Install all six even where a branch wasn't chosen — they are inert until something reads them, and the two branch-specific ones are exactly what the user will need the week they add AI or agent access.
+
+**Run all six even if some are already installed from a previous app.** A re-add is a refresh, not a duplicate, and it is cheaper than checking. What is *not* acceptable is assuming they're there because this skill ran before — read them from disk during the build rather than from memory of the last one.
+
+Nothing lands in the project. They install under the user's own `~/.claude/skills/`, so the folder Step 4 scaffolds into stays empty and `create-next-app .` behaves.
+
+Which one answers what:
+
+| Skill | Read it when |
+| --- | --- |
+| `shadcn` | Adding, composing or theming any component — `references/stack.md`, `pages.md`, `settings.md`, `docs.md` |
+| `vercel-react-best-practices` | Any React or Next code at all: server vs client components, data fetching, forms, caching, Step 5's real pages |
+| `better-auth-best-practices` | `references/auth.md`, and everything that extends `src/lib/auth.ts` afterwards — payments, agent access, settings |
+| `ai-sdk` | `references/ai.md` |
+| `mcp-builder` | `references/mcp.md` — tool design, naming, what a tool hands back |
+| `deploy-to-vercel` | Not during the build. It is installed for the hand-off in Step 8 and for whoever deploys the app later |
+
+**Precedence, when a skill and a reference file disagree.** The same split the research uses below. **The official skill wins on API detail and on its own library's idiom** — names, signatures, imports, options, which hook, which component, what the current recommended pattern is. **This skill's reference files win on how the piece wires into this app** — which file owns what, how it meets the schema, the session, the log and the settings area. Where a reference file hand-rolls something the official skill shows a first-class way to do, take the skill's way and delete the workaround, then say so at hand-off.
+
+**They set no scope.** An official skill will cheerfully recommend a feature, a provider or an extra package. What the app contains is Step 3's, agreed with the user, and a skill's enthusiasm is not a reason to widen it.
+
+### Step 2b — Check what's left
+
+Nothing in this skill names a version, deliberately — this half is where the versions come from. It costs one round of parallel subagents and prevents the expensive failure: an app built confidently against an API that moved.
 
 **Dispatch one subagent per chosen branch, all in a single message so they run at once.** Only the branches the interview selected — there is no sense researching payments for an app that takes no money. The base project, the database, the pages step and discoverability always count as branches here.
 
-Each gets the same brief with its own packages filled in:
+Each gets the same brief with its own packages filled in, and — where the table in Step 2a names a skill for that branch — the path to it:
 
-> Find the current stable release of `<packages>`. Report: the latest stable version of each; anything deprecated, renamed, moved to a different package, or removed within the last two majors; the current import paths and function signatures for `<the specific things this reference file uses>`; **any capability added since that would replace hand-written code in `references/<file>.md`**; and any migration note that would break what's in there. Prefer the package's own docs and changelog over blog posts or search summaries, and check what is actually published on the registry rather than what a docs page claims. Say plainly what you verified against a primary source and what you inferred.
+> Read the `<skill>` skill first, if one is named for this branch — it is installed under `~/.claude/skills/`, it is the maintainer's own documentation, and it outranks anything you find by searching. Research only what it does not answer, and mark which of your findings came from it. Then: find the current stable release of `<packages>`. Report: the latest stable version of each; anything deprecated, renamed, moved to a different package, or removed within the last two majors; the current import paths and function signatures for `<the specific things this reference file uses>`; **any capability added since that would replace hand-written code in `references/<file>.md`**; and any migration note that would break what's in there. Prefer the package's own docs and changelog over blog posts or search summaries, and check what is actually published on the registry rather than what a docs page claims. Say plainly what you verified against a primary source and what you inferred.
 
 **The agent-access branch gets one extra sentence in its brief**, because packages are not the only thing that moves under it: *establish the current revision of the Model Context Protocol specification, and check `references/mcp.md`'s assumptions against that revision's changelog and its registry of deprecated features.* A protocol revision can deprecate something the file relies on without any package changing its name or its signature, and the brief above would sail straight past it. No other branch sits on a spec that versions independently of its libraries.
 
@@ -142,6 +194,7 @@ Then reconcile, before installing anything:
 - **Latest stable only.** Not release candidates, not betas, not `next` or `canary` tags — unless the user asks for one specifically and knows why.
 - **Take the new capability when there is one.** Reference files sometimes hand-roll something because the library couldn't do it yet. If it can now, use the built-in and delete the workaround — `references/mcp.md` says exactly where this is likely.
 - **On API detail the research wins; on how the pieces fit together this skill wins.** Names, signatures, import paths, options, flags: take what the research found. Which piece owns what, and how it wires into the rest of the app: the reference file. Most reference files restate this split at the top for their own dependency.
+- **Where the research and an installed skill disagree, look at what kind of disagreement it is.** On what is published *right now* — a version, a package that split, a signature that changed — the registry is the fact and the research wins, because a skill is a file and files go stale. On which pattern to use among several that all work, the official skill wins; that is its author speaking about their own library. If the skill describes something the registry says no longer exists, say so at hand-off — it is worth knowing that the maintainer's skill has drifted.
 - **If a reference file's approach is now deprecated, take the replacement** and finish the job with it. Don't split the difference.
 - **Say something to the user only when something changed.** One line, plain: "Better Auth moved that into a separate package since this was written — I'm using the new one." Never narrate research that found everything was fine; it reads as filler.
 - **Write down what's stale.** Anything the research contradicted goes in the hand-off at the end, so this skill can be corrected.
@@ -155,6 +208,7 @@ Restate the plan in plain words before touching anything. Example shape:
 > **What it remembers:** hikes — date, trail, distance, how it felt, and photos.
 > **What you can do:** log a hike, edit it later, delete one, see them newest-first.
 > **Signing in:** email and password, so it's yours alone.
+> **How it'll look:** quiet and outdoorsy — a warm off-white background, a deep green accent, soft corners, and a serif for headings. Written down in `DESIGN.md` so every screen matches.
 > **Photos:** saved in the project while you build; they move to cloud storage when you deploy.
 > **From Claude:** you'll be able to log a hike or ask about past ones from Claude itself, without opening the app — and see and revoke that access from inside it.
 > **Also included:** a settings page where you can change your password and delete your account, and a system page showing what's set up and what's happened.
@@ -164,7 +218,7 @@ Restate the plan in plain words before touching anything. Example shape:
 >
 > Sound right?
 
-Include the data model and the explicit **not in version one** list — those two lines are what stop a rewrite later. The **legal** line goes in either way and is a statement, not a question: this example says nothing is needed and why, and a public product would name the pages it gets instead. `references/legal.md` makes the call. The **being found** line goes in either way too, and this example shows the harder half — the app that is deliberately kept out of search still gets a line, because "no SEO" read as silence looks like something forgotten. A public product names what it gets instead: sitemap, `robots.txt`, `llms.txt`, and a preview card for shared links. A **help pages** line appears only where the docs question was asked and answered yes, and it names the pages rather than promising documentation. Also mention anything that needs something from them before it can work (Docker running, an API key, a domain for email, a provider account), so there are no surprises mid-build.
+Include the data model and the explicit **not in version one** list — those two lines are what stop a rewrite later. The **legal** line goes in either way and is a statement, not a question: this example says nothing is needed and why, and a public product would name the pages it gets instead. `references/legal.md` makes the call. The **being found** line goes in either way too, and this example shows the harder half — the app that is deliberately kept out of search still gets a line, because "no SEO" read as silence looks like something forgotten. A public product names what it gets instead: sitemap, `robots.txt`, `llms.txt`, and a preview card for shared links. A **help pages** line appears only where the docs question was asked and answered yes, and it names the pages rather than promising documentation. The **how it'll look** line goes in every sheet and is where a design gets corrected cheaply: name the actual decisions — background, accent, corners, font — not a mood, because "clean and modern" is something nobody can disagree with and therefore nothing they have agreed to. Where they pasted a design system in, say you're using theirs and name anything you had to fill in yourself. Also mention anything that needs something from them before it can work (Docker running, an API key, a domain for email, a provider account), so there are no surprises mid-build.
 
 Get a clear go-ahead. Adjust anything they push back on. If the answer reopens what the app *is* rather than tweaking a detail, go back to Step 1a — that's cheaper now than after the schema exists.
 
@@ -172,23 +226,30 @@ Get a clear go-ahead. Adjust anything they push back on. If the answer reopens w
 
 Work through these in order. Each reference has a **Verify** section — complete it before moving on. Those are your own check as you go; Step 6 is the one that has to survive a command. Every path in them is relative to the current working directory.
 
-1. Base project → `references/stack.md`
-2. Database (SQLite or Postgres-in-Docker branch) → `references/database.md`
-3. Sign-in, if chosen (email+password, optionally Google) → `references/auth.md`
-4. Email, if chosen → `references/email.md` (also wires verification and password reset, if sign-in ran)
-5. File uploads, if chosen → `references/storage.md`
-6. Payments, if chosen → `references/payments.md` (requires sign-in)
-7. AI features, if chosen → `references/ai.md`
-8. Background jobs, if chosen → `references/jobs.md`
-9. Landing page and dashboard → `references/pages.md`
-10. Agent access, if chosen → `references/mcp.md` (requires sign-in)
-11. Public documentation, if chosen → `references/docs.md` (rarely; only a public product that was asked and said yes)
-12. Legal pages and cookie consent, as much as this app owes → `references/legal.md` (decided, never asked; often nothing)
-13. Account settings → `references/settings.md` (requires sign-in; skip only if there is no sign-in)
-14. System visibility → `references/ops.md` (always)
-15. Discoverability → `references/seo.md` (always, but for most apps this means a real title and staying out of search)
+**The skills installed in Step 2a are read alongside these files, not after a build fails.** The table there says which one belongs beside which step: `shadcn` and `vercel-react-best-practices` apply across almost all of them, `better-auth-best-practices` from sign-in onward, `ai-sdk` and `mcp-builder` at their own steps. Read the relevant one *before* writing that file's code. Searching the web for an answer that is already installed on this machine is the specific waste this step is arranged to avoid.
 
-The order matters: payments, uploads and agent access all extend what sign-in built; the pages step needs the lot in place; and settings and system visibility hang off the navigation the pages step creates. Agent access sits after the pages step because its consent screen has to look like the rest of the app, and before the rest because each grows a section only if it ran. Documentation comes next because it can only describe branches that exist, and before legal so that legal's pass over the footer sees the docs link already there. Legal comes after every feature branch for the same reason in reverse — the privacy page has to describe all of them — and before settings, which grows a cookie-preferences section only if a banner was built. Anything that changes `src/lib/auth.ts` means regenerating the Better Auth schema and running `db:generate` + `db:migrate` again — the reference files say where.
+**And from step 2 onward, `DESIGN.md` governs every screen any of these steps builds** — the settings area, the emails, the consent screen, the legal pages, the docs. None of them re-decides how the app looks, and none of them writes a colour, a font size or a radius into a component.
+
+1. Base project → `references/stack.md`
+2. Design system → `references/design.md` (always; writes `DESIGN.md`, the theme tokens, `AGENTS.md` and `CLAUDE.md`)
+3. Database (SQLite or Postgres-in-Docker branch) → `references/database.md`
+4. Sign-in, if chosen (email+password, optionally Google) → `references/auth.md`
+5. Email, if chosen → `references/email.md` (also wires verification and password reset, if sign-in ran)
+6. File uploads, if chosen → `references/storage.md`
+7. Payments, if chosen → `references/payments.md` (requires sign-in)
+8. AI features, if chosen → `references/ai.md`
+9. Background jobs, if chosen → `references/jobs.md`
+10. Landing page and dashboard → `references/pages.md`
+11. Agent access, if chosen → `references/mcp.md` (requires sign-in)
+12. Public documentation, if chosen → `references/docs.md` (rarely; only a public product that was asked and said yes)
+13. Legal pages and cookie consent, as much as this app owes → `references/legal.md` (decided, never asked; often nothing)
+14. Account settings → `references/settings.md` (requires sign-in; skip only if there is no sign-in)
+15. System visibility → `references/ops.md` (always)
+16. Discoverability → `references/seo.md` (always, but for most apps this means a real title and staying out of search)
+
+**The design system comes second, immediately after the scaffold, because it is the only step every later one reads from.** It needs the project to exist — `globals.css` and `layout.tsx` are what it edits — and it needs to be in place before a single screen is built, because retrofitting a theme onto pages already written means editing all of them. It is also where `AGENTS.md` and `CLAUDE.md` get written, so every step after it, and every agent that opens this project later, is held to the same document.
+
+The rest of the order matters too: payments, uploads and agent access all extend what sign-in built; the pages step needs the lot in place; and settings and system visibility hang off the navigation the pages step creates. Agent access sits after the pages step because its consent screen has to look like the rest of the app, and before the rest because each grows a section only if it ran. Documentation comes next because it can only describe branches that exist, and before legal so that legal's pass over the footer sees the docs link already there. Legal comes after every feature branch for the same reason in reverse — the privacy page has to describe all of them — and before settings, which grows a cookie-preferences section only if a banner was built. Anything that changes `src/lib/auth.ts` means regenerating the Better Auth schema and running `db:generate` + `db:migrate` again — the reference files say where.
 
 **Discoverability is last because it is the only step that has to know every public page.** It writes the sitemap and `llms.txt` from one list, and legal and documentation both add pages to it — a sitemap written before them is wrong the moment they run.
 
@@ -200,7 +261,7 @@ This is not a polish pass; it is most of the value. The scaffold in Step 4 is in
 
 - Name the project after their idea (package name, page titles, visible branding).
 - The schema tables are the **nouns** from Step 1a, each with a UUID primary key, and the ownership rule from Step 1b applied — a `userId` column (`text`, matching Better Auth) and every query scoped to it if data is private.
-- Build the real pages: the front door and dashboard from `references/pages.md`, real navigation, and the **verbs** from Step 1a wired up — including editing and deleting if the gap-check said so.
+- Build the real pages: the front door and dashboard from `references/pages.md`, real navigation, and the **verbs** from Step 1a wired up — including editing and deleting if the gap-check said so. This is the densest React in the app and where `vercel-react-best-practices` earns its install — server versus client components, where data is fetched, what a form does. Compose the screens from `shadcn` components rather than hand-writing markup that approximates them, and build them to `DESIGN.md` — the decisions were made and agreed already, so this step spends its judgement on the app, not on picking colours again.
 - Seed nothing generic: every visible string should make sense for *their* app. No "Item", no "Welcome to Next.js", no lorem ipsum. This includes the settings area, the emails, the legal pages, any documentation, and **the browser tab** — a section called "Notifications" listing categories the app never sends, an email signed "My App", a privacy policy about "user-generated items" in an app whose every other screen says "hikes", or a tab still reading "Create Next App", are all the same failure as a page of lorem ipsum.
 - Build only the settings sections this app has. An empty Billing tab or a Notifications tab for an app that sends no email is worse than a missing one.
 - If agent access was chosen, the tools are named for the **verbs** too — `log_hike`, not `create_item` — and they are the handful of things someone would actually ask for, not one per table.
@@ -239,6 +300,8 @@ They read evidence, not the running app. Four agents cannot share a port or a br
 - Discoverability, kept out of search: name the two places the switch lives — `robots: { index: false }` in `src/app/layout.tsx` and `src/app/robots.ts` — as the thing to change if the app ever goes public. Left in place on a launched product it costs them every visitor they were expecting, and it is invisible.
 - Discoverability, public: say plainly that a sitemap is an invitation and not a ranking, that `llms.txt` is a proposed convention no major AI crawler has committed to reading, and that what a crawler is actually *permitted* to do lives in `robots.txt` alone. Point them at the preview card once — it is what a shared link looks like, and it is the first thing they'll see the app judged by.
 - Docs branch: say how many pages there are and that they are true today, which makes them the first thing to go stale. If writing any page was hard because the flow needed explaining, say which one — that is a finding about the app, not about the page.
+- Say once, in a line, that this build read from the maintainers' own skills — shadcn's, Vercel's, Better Auth's, the AI SDK's and MCP's — installed once at Step 2a and now available in every project on this machine, refreshed with `npx skills update -g`. Nothing was added to the app's own folder. Name `deploy-to-vercel` as the one that hasn't been used yet: it is what puts the app online when they're ready.
 - Close with a plain-language summary: how to start the app (including `pnpm db:up` if Postgres is in Docker), what each entry in `.env` is for, and two or three sensible next steps.
+- Point at `DESIGN.md` in one line: it's the app's look written down, `AGENTS.md` and `CLAUDE.md` point any agent at it, and changing a colour there and in `globals.css` restyles every page at once. Say which parts came from them and which you proposed — those are the ones most likely to want changing.
 - Show them the system page and say what it's for. It is the answer to "why didn't that email arrive?" and "is that still running?", and they will not find it on their own.
 - Where local and production differ, spell out the one-time switch: connect a Blob store for uploads, point `POSTGRES_URL` at a hosted database, swap payment keys out of test mode, add the Resend key once the domain is verified, add the Inngest keys and sync the app, point `BETTER_AUTH_URL` at the real domain so agent tokens are issued for it, and set `APP_URL` to the same real domain so the sitemap, canonical links and preview card aren't full of `localhost`. Each is a setting on the host, not a code change — say that, because it's the part people expect to be hard. The two that also need an action outside the host are verifying the email domain in DNS and syncing the app with Inngest after the first deploy; call those out by name.

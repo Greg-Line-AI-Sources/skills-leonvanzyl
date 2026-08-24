@@ -43,11 +43,11 @@ src/app/(docs)/layout.tsx                        → sidebar + the app's own hea
 
 Link them from the header and the footer both. Someone reading the landing page and someone stuck mid-task look in different places.
 
-**No docs framework.** Not Fumadocs, Nextra, Docusaurus, or a hosted platform — they are all good, and every one of them is a second design system, a second deploy, and a second place the product's name has to be updated. Six pages do not earn that. These are pages in the app, built from the components already installed, deployed by the same push, and wearing the theme `references/pages.md` chose. If the app ever grows into hundreds of pages, moving out is the right call then and the markdown comes with it.
+**No docs framework.** Not Fumadocs, Nextra, Docusaurus, or a hosted platform — they are all good, and every one of them is a second design system, a second deploy, and a second place the product's name has to be updated. Six pages do not earn that. These are pages in the app, built from the components already installed, deployed by the same push, and wearing the theme `DESIGN.md` set. If the app ever grows into hundreds of pages, moving out is the right call then and the markdown comes with it.
 
 ## Wiring MDX
 
-MDX is markdown that can render the app's own components, which is what stops the pages looking like a different website. It needs the MDX packages, a `next.config` that accepts `.mdx` as a page extension, and one component-mapping file. Step 2's research supplies the current package names and config shape — the wiring below is the arrangement, not the API.
+MDX is markdown that can render the app's own components, which is what stops the pages looking like a different website. It needs the MDX packages, a `next.config` that accepts `.mdx` as a page extension, and one component-mapping file. The installed `vercel-react-best-practices` skill and Step 2b's research supply the current package names and config shape — the wiring below is the arrangement, not the API.
 
 **A page is a file, exporting its own metadata:**
 

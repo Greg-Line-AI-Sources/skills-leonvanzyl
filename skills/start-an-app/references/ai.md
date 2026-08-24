@@ -4,6 +4,8 @@ Last verified: 2026-07-21
 
 **Purpose:** Give the app AI abilities (chat, text generation) through the AI SDK, with OpenRouter as the provider so one API key unlocks many models.
 
+> **Read the `ai-sdk` skill before writing any of this.** Step 2a installed it: the AI SDK maintainers' own documentation, shipped from the same repository as the package. On function names, streaming, tool calling, `useChat`, and which import comes from where it outranks this file and anything found by searching — this area moves faster than most. This file owns the provider choice, the route, and how a feature meets the app's auth and log.
+
 ## Install
 
 ```bash

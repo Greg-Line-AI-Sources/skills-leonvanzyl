@@ -4,6 +4,8 @@ Last verified: 2026-07-27
 
 **Purpose:** Give the app a real front door and, when there are accounts, a real place to land after signing in. This is the step that decides whether the result looks like *their app* or like a scaffold with the boxes ticked.
 
+> **Read `DESIGN.md` before building any of these, and the `vercel-react-best-practices` and `shadcn` skills alongside it.** `DESIGN.md` is binding — the look was agreed with the user before this step and is not reopened here. Step 2a installed the two skills, and this is the densest React in the app — the step where server versus client components, where data is fetched, and how forms submit actually matter. Build the screens out of shadcn components rather than hand-writing markup that approximates them. Those skills own *how the React is written*; this file owns what the pages are, what they say, and who sees them.
+
 ## First: what is the front door?
 
 Do not reflexively build a marketing landing page. Pick from what the interview established:
@@ -17,19 +19,11 @@ Do not reflexively build a marketing landing page. Pick from what the interview 
 
 A hiking journal for one person does not need a hero section and a pricing table. Building one is the single fastest way to make the result feel like a template. If the interview said "just me", skip straight to the app.
 
-## Styling: pick a direction, then be consistent
+## Styling: build to `DESIGN.md`
 
-Choose **one** visual direction that fits what the app is, and say what you picked and why in one line. A developer tool, a children's reading tracker, and an invoicing app should not look alike.
+The visual direction is not decided here. It was agreed in the interview and written to `DESIGN.md` at the project root by `references/design.md`, which also set the theme tokens in `src/app/globals.css` and the fonts in `layout.tsx`. **This step spends its judgement on the app, not on how it looks** — read that file and build to it.
 
-Set it in **one place** — the CSS variables shadcn wrote into `src/app/globals.css` — never by scattering one-off colours through components:
-
-- `--primary` (and `--primary-foreground`): the app's colour. This one variable does most of the work.
-- The neutral base (`--background`, `--foreground`, `--muted`, `--border`): warm neutrals read friendly and editorial; cool greys read technical; near-black reads premium.
-- `--radius`: `0.3rem` is precise and serious, `0.625rem` is the default, `1rem` is soft and approachable.
-
-Change the font if the default doesn't fit — `next/font/google` in `src/app/layout.tsx` is a one-line change and shifts the whole character more than any colour will.
-
-Both the `:root` and `.dark` blocks exist. Whatever you change, check the app in both — a primary colour that's legible on white and invisible on near-black is a bug users will hit.
+Where the pages need something the file doesn't cover — a badge colour, a chart palette, a wider content width for one page — **add it to `DESIGN.md` as a token first, then use the token.** Deciding it inside a component instead is how an app ends up with five blues and no record of which was intended.
 
 Rules that hold regardless of direction:
 

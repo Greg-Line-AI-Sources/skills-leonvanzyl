@@ -75,6 +75,14 @@ npm pkg get scripts.lint
 
 Errors block, warnings don't — that is already ESLint's exit-code behaviour, so take it and don't add `--max-warnings 0`. A fix loop grinding on unused imports is the failure mode here.
 
+Then one grep, because the design system is only real if the components obey it:
+
+```bash
+grep -rEn '#[0-9a-fA-F]{3,8}|rgb\(|oklch\(' src --include='*.tsx'
+```
+
+Every hit is a colour that escaped the theme — it will look wrong in the other mode and it will not follow if `DESIGN.md` changes. Move it to a token. The one sanctioned exception in the whole app is the unfilled-field marker `references/legal.md` builds, which is hardcoded on purpose so it cannot blend in.
+
 ### 5 — Serve it in production mode
 
 ```bash
@@ -318,7 +326,7 @@ Only when there is sign-in.
 
 > You are the first stranger to open this app. Read every string a person will see.
 >
-> The sheet: `<paste>`. The nouns and verbs it uses: `<list>`. The pages: `<paste the route list>`. `<If screenshots were captured: light and dark, desktop and narrow, attached.>`
+> The sheet: `<paste>`. The nouns and verbs it uses: `<list>`. The pages: `<paste the route list>`. The design system the app was built to: `<paste DESIGN.md>`. `<If screenshots were captured: light and dark, desktop and narrow, attached.>`
 >
 > Start at the front door and answer in one sentence what this app is for. **If you can't, that is the finding and everything else is detail.**
 >
@@ -336,7 +344,9 @@ Only when there is sign-in.
 >
 > If the app calls a noun or verb something different on screen than the sheet does, say where and what it calls it — that is usually a real disagreement rather than a synonym.
 >
-> **You are not a designer.** Do not report colour choices, spacing, or component selection. `<From the screenshots, report only what is illegible, overlapping, or cut off — not taste.>`
+> - A page that contradicts `DESIGN.md`: a colour, font size or radius written into a component instead of taken from a token, a font that isn't one of the two the file names, a list with no empty state where the file requires one. Quote the line of `DESIGN.md` it breaks.
+>
+> **You are not a designer.** `DESIGN.md` is the only design standard here, and it was agreed with the user. Whether it is a *good* design is not your question — do not report colour choices, spacing or component selection that the file permits, and do not propose a different direction. `<From the screenshots, report only what is illegible, overlapping, or cut off — not taste.>`
 
 ### Operability
 
