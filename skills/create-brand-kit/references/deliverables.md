@@ -28,6 +28,7 @@ README.md       pick-the-right-file table, themed-variant CSS snippet, circular-
                 warning, favicon <link> block, colour/type/clear-space spec, honest
                 known-open-items
 guidelines.html generated spec page (below)
+mockups/        optional — AI merch mockups via the Codex CLI (see "Merch mockups")
 ```
 
 Package as `<company>-brand-kit/` and zip.
@@ -36,7 +37,7 @@ Package as `<company>-brand-kit/` and zip.
 
 **Lockup baseline rule.** The mark's flat foot sits ON the wordmark's baseline (flat edges on
 the baseline; only round forms overshoot, by ~1u). Never centre the mark on the wordmark's
-bounding box — that is how the source engagement shipped a masthead 2.3× too large. Size the
+bounding box — bbox-centred lockups reliably ship with the mark visibly oversized. Size the
 mark from a *stated geometric relationship*, e.g. "mark height such that its dominant round
 form equals cap height exactly"; derive the number, then write the derivation into the spec.
 
@@ -45,9 +46,9 @@ from a variable font, apply GPOS kerning, flip Y, normalise so cap height = 100 
 baseline = 0. Measure the TRUE ink extremes with BoundsPen (ascender ≠ tallest glyph;
 descenders vary) — the viewBox must wrap measured ink, not font metrics.
 
-**Ink radius / round-safe icons (Law 17).** Compute max distance from bbox centre to any ink
-point (check every arc extreme and every corner — in the source engagement the farthest ink
-was a stem corner, not the bowl). Scale so all ink fits:
+**Ink radius / round-safe icons.** Compute max distance from bbox centre to any ink
+point (check every arc extreme and every corner — the farthest ink is often a stem corner,
+not the obvious bowl). Scale so all ink fits:
 - avatars: inside r = 27 of the 64-frame's r = 32
 - Android adaptive foreground: inside r = 20 (~66dp guaranteed circle); ship background
   layer + composed preview separately
@@ -88,6 +89,45 @@ made / known limitations" section. Subset the brand font to a data-URI `@font-fa
 per weight via fontTools subset → woff2) so the page is self-contained. Theme-aware via
 `prefers-color-scheme` with `[data-theme]` overrides. Publish as an Artifact when available;
 always also ship the file in the kit.
+
+## Merch mockups (optional — requires the Codex CLI)
+
+Offer only when `codex --version` succeeds, and only run after the user says yes (it takes
+time and uses their Codex account). These are AI-generated visualisations for taste-testing
+the identity in the world, not print proofs — label them as such in the README.
+
+**Reference image.** Codex image generation accepts reference images via `-i`. Pass the
+largest kit PNG whose colourway matches the surface: knockout (light-on-dark) art for dark
+garments, dark-on-light art for light garments and paper. Stacked lockup for chest prints
+and cards; bare mark for caps and embroidery.
+
+**Prompt template.** Two parts are load-bearing: the faithful-reproduction instruction, and
+*verbal redundancy* — describe the artwork in words as well as attaching it, and spell the
+name out explicitly. Image models mangle wordmarks; the spelling line is what catches it.
+
+```
+codex exec -s workspace-write "Generate a photorealistic e-commerce apparel product photo
+and save it to <kit>/mockups/<slug>.png. Scene: <scene>. The attached image is the exact
+logo artwork: reproduce it faithfully <application>, about <width> wide — <verbal
+description: the mark's elements and colours, and which letters of the wordmark are
+accent-coloured>. Spelling must be exactly '<name>'. <finish>. Portrait orientation." \
+  -i <kit>/png/<reference>.png
+```
+
+**Default variant matrix** (seven images; male + female models, faces never visible):
+
+| Slug | Scene | Application / finish |
+|---|---|---|
+| tshirt-male, tshirt-female | fit model, chin to waist, plain crew-neck cotton tee in the brand's ink colour, front-on, soft studio light, neutral light-grey seamless background | screen print, centre chest, ~26 cm wide; matte water-based finish that follows fabric folds slightly |
+| golf-male, golf-female | model chin to waist, collared golf/polo shirt in the ink colour, front-on, studio | embroidered left chest, bare mark or compact lockup, ~9 cm; visible stitched-thread texture |
+| cap-male, cap-female | structured six-panel cap in the ink colour, worn and framed below the eyes, or a cap-only product shot | embroidery on the front panel, bare mark only, ~6 cm; raised stitches |
+| cards | no model — flat-lay stack of business cards on a desk, soft daylight | front in ink colour with the knockout lockup, back in paper colour with the dark lockup; matte cardstock |
+
+**Run and check.** The commands are independent — run them in the background in parallel.
+As each image lands, Read the PNG and check: spelling exact, mark reproduced rather than
+redrawn, accent on the right letters, colourway correct for the garment. Regenerate a
+failure once, naming the failure in the new prompt ("the previous attempt misspelled the
+name as ..."). Only survivors go into `<kit>/mockups/`.
 
 ## Verification gates before packaging
 

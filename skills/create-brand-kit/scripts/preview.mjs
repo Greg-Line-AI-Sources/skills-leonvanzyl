@@ -1,8 +1,8 @@
 // Designer's render-and-look harness.  node preview.mjs <file.svg> [outPng] [ink] [paper]
 //
 // Renders the mark big on both grounds IN ITS OWN TRUE COLOURS (this matters: a harness that
-// force-overrides fills hides accent elements from every reviewer — that bug survived three
-// review rounds in the engagement this skill came from), plus forced-mono rows, silhouette,
+// force-overrides fills hides accent elements from every reviewer — that bug has survived
+// multiple review rounds unnoticed before), plus forced-mono rows, silhouette,
 // circular crop, a real raster ladder to 12px, and an ink-gain/embroidery simulation.
 // Read the PNG afterwards and LOOK at it. That is the entire point.
 import fs from 'node:fs';
@@ -13,9 +13,10 @@ const src = process.argv[2];
 const out = process.argv[3] || src.replace(/\.svg$/, '.preview.png');
 const INK = process.argv[4] || '#0B0C0E';
 const PAPER = process.argv[5] || '#FFFFFF';
-const CHROME = process.platform === 'win32'
-  ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-  : 'google-chrome';
+const CHROME = process.env.CHROME
+  || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    : process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+      : 'google-chrome');
 const svg = fs.readFileSync(src, 'utf8');
 
 const ladder = () => [64, 48, 32, 24, 16, 12].map(s =>
@@ -64,4 +65,4 @@ const tmp = out.replace(/\.png$/, '.html');
 fs.writeFileSync(tmp, html);
 execFileSync(CHROME, ['--headless', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=2',
   `--screenshot=${out}`, '--window-size=1040,760', 'file:///' + path.resolve(tmp).replace(/\\/g, '/')], { stdio: 'ignore' });
-console.log('rendered -> ' + out + '   (Read this PNG and LOOK at it — Law 14)');
+console.log('rendered -> ' + out + '   (Read this PNG and LOOK at it — render-and-look)');

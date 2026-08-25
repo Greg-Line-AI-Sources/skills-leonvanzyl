@@ -8,7 +8,7 @@ so numbers map directly onto the construction module.
 
 Why these numbers matter:
   centroid vs bbox-centre -> optical centring in square containers (blend ~0.35 toward centroid)
-  maxInkRadius            -> round-safe scaling: avatar r=27/32, adaptive r=20/32 (Law 17)
+  maxInkRadius            -> round-safe scaling: avatar r=27/32, adaptive r=20/32
   minimum clearances      -> measure with your own geometry; designers misreport them
 """
 import sys, os, json, subprocess, tempfile, math

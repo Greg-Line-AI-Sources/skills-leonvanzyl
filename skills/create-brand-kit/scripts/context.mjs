@@ -1,15 +1,22 @@
-// Real-world context renderer: node context.mjs <markSvgPath> <outPng> [ink] [surface] [accent]
+// Real-world context renderer:
+//   node context.mjs <markSvgPath> <outPng> [brandName] [domain] [tagline] [ink] [accent]
 // Puts a mark into the situations it will actually live in: browser tab, app icon, avatar,
-// business card, terminal-adjacent UI, embroidery-scale, and a 1-bit fax test.
+// business card, size ladders, and a 1-bit fax test. Ink = the brand's dark ground colour;
+// accent = the colour used for the forced-solid rows (usually the light/knockout colour).
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-const [markPath, out, INK = '#060711', SURF = '#0A0C18', ACC = '#ECEEF5'] = process.argv.slice(2);
-const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const [markPath, out, NAME = 'Brand', DOMAIN = 'example.com', TAGLINE = '',
+  INK = '#060711', ACC = '#ECEEF5'] = process.argv.slice(2);
+const CHROME = process.env.CHROME
+  || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    : process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+      : 'google-chrome');
 const mark = fs.readFileSync(markPath, 'utf8');
 
 const M = (cls = '') => `<span class="m ${cls}">${mark}</span>`;
+const foot = [TAGLINE, DOMAIN].filter(Boolean).join('<br>');
 
 const html = `<html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}
@@ -63,17 +70,17 @@ h1{font:600 17px/1 "Segoe UI";margin:0 0 4px;letter-spacing:-.02em}
 .solidink svg *{fill:${INK} !important;stroke:${INK} !important}
 .photo{background:linear-gradient(115deg,#c9553f 0%,#7a3f8a 45%,#1f5f7a 100%);}
 </style></head><body>
-<h1>Cognaitiv AI — mark in situ</h1>
+<h1>${NAME} — mark in situ</h1>
 <div class="sub">${path.basename(markPath)} — every context the mark actually has to survive</div>
 
 <div class="row">
   <div class="panel" style="padding-bottom:26px">
     <div class="browser">
       <div class="tabs">
-        <div class="tab">${M('solid')}<span>Cognaitiv AI</span></div>
+        <div class="tab">${M('solid')}<span>${NAME}</span></div>
         <div class="tab off">GitHub</div><div class="tab off">Linear</div>
       </div>
-      <div class="urlbar"><span class="dot" style="background:#3a3f4e"></span>cognaitiv.ai</div>
+      <div class="urlbar"><span class="dot" style="background:#3a3f4e"></span>${DOMAIN}</div>
     </div>
     <span class="cap">16px favicon — the real test</span>
   </div>
@@ -99,12 +106,12 @@ h1{font:600 17px/1 "Segoe UI";margin:0 0 4px;letter-spacing:-.02em}
 <div class="row">
   <div class="panel" style="padding-bottom:26px">
     <div class="card"><div class="m solid" style="width:34px;height:34px">${mark}</div>
-      <div class="cardfoot">Agentic engineering studio<br>cognaitiv.ai</div></div>
+      <div class="cardfoot">${foot}</div></div>
     <span class="cap">card — dark</span>
   </div>
   <div class="panel" style="padding-bottom:26px">
     <div class="card light"><div class="m solidink" style="width:34px;height:34px">${mark}</div>
-      <div class="cardfoot">Agentic engineering studio<br>cognaitiv.ai</div></div>
+      <div class="cardfoot">${foot}</div></div>
     <span class="cap">card — light</span>
   </div>
   <div class="panel photo" style="padding-bottom:26px">

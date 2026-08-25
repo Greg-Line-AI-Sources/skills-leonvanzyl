@@ -13,8 +13,6 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.misc.transform import Transform
 
-SRC = r"C:\logo\build\sgvar.ttf"
-
 def build(font_path, text, weight=600, upem_target=1000.0, tracking_em=0.0):
     f = TTFont(font_path)
     if "fvar" in f:

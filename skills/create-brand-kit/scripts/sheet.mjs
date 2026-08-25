@@ -5,7 +5,10 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const [dir, out, title = 'contact sheet'] = process.argv.slice(2);
-const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+const CHROME = process.env.CHROME
+  || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    : process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+      : 'google-chrome');
 
 const files = fs.readdirSync(dir).filter(f => f.endsWith('.svg')).sort();
 if (!files.length) { console.error('no svgs in ' + dir); process.exit(1); }
