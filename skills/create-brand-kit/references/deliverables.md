@@ -106,13 +106,23 @@ and cards; bare mark for caps and embroidery.
 name out explicitly. Image models mangle wordmarks; the spelling line is what catches it.
 
 ```
-codex exec -s workspace-write "Generate a photorealistic e-commerce apparel product photo
-and save it to <kit>/mockups/<slug>.png. Scene: <scene>. The attached image is the exact
-logo artwork: reproduce it faithfully <application>, about <width> wide — <verbal
-description: the mark's elements and colours, and which letters of the wordmark are
-accent-coloured>. Spelling must be exactly '<name>'. <finish>. Portrait orientation." \
-  -i <kit>/png/<reference>.png
+codex exec -s workspace-write --skip-git-repo-check "Generate a photorealistic e-commerce
+apparel product photo and save it to <kit>/mockups/<slug>.png. Scene: <scene>. The
+attached image is the exact logo artwork: reproduce it faithfully <application>, about
+<width> wide — <verbal description: the mark's elements and colours, and which letters of
+the wordmark are accent-coloured>. Spelling must be exactly '<name>'. <finish>. Portrait
+orientation." -i <kit>/png/<reference>.png
 ```
+
+Two CLI traps, both hit in real runs — get them right the first time:
+
+- **`--skip-git-repo-check` is required.** Codex refuses to run in a directory that is not
+  a git repository ("Not inside a trusted directory"), and brand-kit working folders
+  usually aren't repos. Without the flag, every job exits immediately.
+- **The prompt comes BEFORE `-i`, and `-i` goes last.** `-i` accepts *multiple* image
+  paths; if it precedes the prompt, it swallows the prompt string as another image path
+  and the CLI fails with "No prompt provided via stdin". Keep the order exactly as in the
+  template: flags, then the quoted prompt, then `-i <reference.png>` at the end.
 
 **Default variant matrix** (seven images; male + female models, faces never visible):
 
