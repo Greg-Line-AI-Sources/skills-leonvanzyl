@@ -148,8 +148,9 @@ If it is, **offer** the user photorealistic AI mockups — the logo screen-print
 T-shirts and golf shirts (male and female models), embroidered on caps, and printed on
 business cards. Only run it if they say yes: it takes time and uses their Codex account.
 The command template, variant matrix, and the checks that catch mangled wordmarks are in
-`references/deliverables.md` ("Merch mockups"). If Codex is not installed, don't offer
-and don't mention it.
+`references/deliverables.md` ("Merch mockups"). After the surviving images land in
+`<kit>/mockups/`, regenerate `guidelines.html` so its "in the world" gallery shows them,
+and re-zip the kit. If Codex is not installed, don't offer and don't mention it.
 
 ## Working style
 

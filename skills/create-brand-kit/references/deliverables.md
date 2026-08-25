@@ -84,8 +84,10 @@ regenerates it for free. Include: the idea (one screen, the phone test verbatim)
 construction plate with dimensions; clear-space + minimum sizes (digital px, print mm,
 embroidery mm); colour table with computed contrast ratios and the accent-discipline rule;
 typography; lockups with the baseline rule stated; variants and when each applies; circular-
-mask section with the ink-radius number; misuse list; asset index; and an honest "how it was
-made / known limitations" section. Subset the brand font to a data-URI `@font-face` (~9KB
+mask section with the ink-radius number; misuse list; asset index; an honest "how it was
+made / known limitations" section; and — if merch mockups were generated (below) — an
+"in the world" gallery of the surviving images, captioned as AI visualisations rather
+than print proofs. Subset the brand font to a data-URI `@font-face` (~9KB
 per weight via fontTools subset → woff2) so the page is self-contained. Theme-aware via
 `prefers-color-scheme` with `[data-theme]` overrides. Publish as an Artifact when available;
 always also ship the file in the kit.
@@ -138,6 +140,21 @@ As each image lands, Read the PNG and check: spelling exact, mark reproduced rat
 redrawn, accent on the right letters, colourway correct for the garment. Regenerate a
 failure once, naming the failure in the new prompt ("the previous attempt misspelled the
 name as ..."). Only survivors go into `<kit>/mockups/`.
+
+**Then regenerate `guidelines.html`** so the "in the world" gallery appears — the page is
+generated from the shipped assets, so a regeneration is free, and mockups arrive after
+the first generation. Two forms:
+
+- **Kit copy:** reference the images by relative path (`mockups/<slug>.png`) — they ship
+  in the same folder, and the page stays light.
+- **Artifact publish:** relative paths won't resolve in a single published page, so inline
+  downscaled copies as data URIs — resize to ≤ ~900px wide, re-encode as JPEG ~80
+  (Pillow is already a dependency) — to stay self-contained and well inside size limits.
+  If even downscaled images would push the page past its budget, keep the gallery in the
+  kit copy only and say so.
+
+Re-zip the kit after the regeneration so the packaged archive includes both the mockups
+and the updated guidelines.
 
 ## Verification gates before packaging
 
