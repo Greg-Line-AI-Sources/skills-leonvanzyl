@@ -87,7 +87,27 @@ typography; lockups with the baseline rule stated; variants and when each applie
 mask section with the ink-radius number; misuse list; asset index; an honest "how it was
 made / known limitations" section; and — if merch mockups were generated (below) — an
 "in the world" gallery of the surviving images, captioned as AI visualisations rather
-than print proofs. Subset the brand font to a data-URI `@font-face` (~9KB
+than print proofs.
+
+**Gallery images must be clickable to full screen.** Use a native `<dialog>` lightbox —
+no libraries, so the page stays self-contained: thumbnails get `cursor: zoom-in`, a click
+opens the image as large as the viewport allows (`max-width/max-height` ~95vw/95vh,
+`object-fit: contain`, dark backdrop), and clicking anywhere or pressing Esc closes it
+(`<dialog>` gives Esc for free). The pattern, in full:
+
+```html
+<dialog id="lightbox" onclick="this.close()"><img alt=""></dialog>
+<script>
+  document.querySelectorAll('.mockup-gallery img').forEach(t => t.onclick = () => {
+    const d = document.getElementById('lightbox');
+    d.querySelector('img').src = t.dataset.full || t.src;
+    d.showModal();
+  });
+</script>
+```
+
+In the kit copy, `data-full` can point at the full-resolution `mockups/<slug>.png` while
+the thumbnail is CSS-constrained; in the Artifact publish both are the embedded data URI. Subset the brand font to a data-URI `@font-face` (~9KB
 per weight via fontTools subset → woff2) so the page is self-contained. Theme-aware via
 `prefers-color-scheme` with `[data-theme]` overrides. Publish as an Artifact when available;
 always also ship the file in the kit.
