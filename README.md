@@ -47,7 +47,3 @@ Want a different auth provider? Ask your coding agent to swap it out in `referen
 Need a logo? The create-brand-kit skill runs a full brand-identity process from any starting point, even just a name. You get a logomark, wordmark, lockups, a design system, icons, social icons, favicons, app icons, and a generated guidelines page. Useful right after starting an app, before you show it to anyone.
 
 > Use the create-brand-kit skill for my app.
-
-## Adding a new skill
-
-Copy [`TEMPLATE.md`](TEMPLATE.md) to `skills/<skill-name>/SKILL.md` (lowercase, hyphens), fill in the frontmatter, write the instructions, and push. The `skills` CLI discovers everything under `skills/` automatically, so there is no registry to update. A skill can also ship supporting files (scripts, references, examples) in the same folder.
