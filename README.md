@@ -1,39 +1,53 @@
 # Leon's Agent Skills
 
-A collection of agent skills by [Leon van Zyl](https://github.com/leonvanzyl). Skills work with Claude Code, Cursor, Codex, OpenCode, and any other agent supported by the [`skills` CLI](https://github.com/vercel-labs/skills).
+Skills by [Leon van Zyl](https://github.com/leonvanzyl) that take a web app from idea to production in three steps: start it, review it, deploy it. They work with Claude Code, Cursor, Codex, OpenCode, and any other agent supported by the [`skills` CLI](https://github.com/vercel-labs/skills).
 
 ## Install
 
-Install all skills from this repo:
+One command installs all four skills:
 
 ```bash
 npx skills add leonvanzyl/skills
 ```
 
-Browse what's available first:
+Or skip the terminal and paste this straight into your coding agent:
 
-```bash
-npx skills add leonvanzyl/skills --list
-```
+> Please install the start, review, and deploy an app skills by running `npx skills add leonvanzyl/skills`.
 
-Install a specific skill:
+You can also browse first with `npx skills add leonvanzyl/skills --list`, or install a single skill with `npx skills add leonvanzyl/skills --skill <skill-name>`.
 
-```bash
-npx skills add leonvanzyl/skills --skill <skill-name>
-```
+## The three steps
 
-## Skills
+### 1. Start an app
 
-| Skill | Description |
-| ----- | ----------- |
-| [start-an-app](skills/start-an-app) | Interview-driven app scaffolder: asks what you're building in plain language, recommends the right options (SQLite vs Postgres in Docker, sign-in, transactional email, file uploads, payments, AI features, background jobs), and builds a working Next.js app that's yours from the first commit — not a template. Every app ships with account settings and a system page for logs and debugging, plus whatever legal pages an app of its kind actually owes (decided rather than asked, with a cookie banner only where something genuinely tracks people). The build ends by proving itself — commands that pass or fail, then a fresh set of agents checking the result against what you agreed. |
-| [deploy-an-app](skills/deploy-an-app) | Takes a Next.js app that runs on your machine and puts it live on Vercel — provisioning the database and file storage, wiring email, background jobs, payments and agent access, and setting every environment variable before the first build so there's one deploy rather than a fix-and-redeploy loop. Asks for the handful of things only a human can do (OAuth callback URLs, DNS records) once, in a single sitting, instead of one failed build at a time. Ends by checking the live site with commands, and says plainly what it couldn't check. |
-| [review-an-app](skills/review-an-app) | Reviews an app that already exists — the whole thing as it stands today, not a pull request and not a diff, so it catches what was already wrong before the current branch. Gathers evidence once, then runs three independent lenses over it in parallel: security against the OWASP Top 10 grounded in what this stack actually gets wrong, discoverability (is the sitemap, robots.txt and llms.txt still true?), and drift (does the landing page, the docs and the privacy policy still describe the product?). The bar is the app's own claims rather than what a bigger app would have, so a finding is a contradiction and never an absence. Read-only by default, re-checks anything uncertain with a command, and never concludes that an app is secure. |
+Always your first step. Describe the app you want to build in plain language. The agent asks clarifying questions until it understands what you actually need, then picks a tech stack that is scalable, easy to deploy, and secure. You end up with a working Next.js app that is yours from the first commit, with sign-in, a database, a landing page, a dashboard, and the legal pages an app of its kind owes its users. The build ends by proving itself with commands that pass or fail.
+
+> Use the start-an-app skill. I want to build...
+
+### 2. Review an app
+
+Once the app exists, have it checked. This skill reviews the whole app as it stands today and reports on three things: security against the OWASP Top 10, SEO and AI discoverability (is your sitemap, robots.txt, and llms.txt still true?), and drift, meaning anything your landing page, docs, or privacy policy claim that the app no longer does. Read-only by default, and it re-checks anything uncertain with a command instead of guessing.
+
+> Use the review-an-app skill on this project.
+
+### 3. Deploy an app
+
+Takes your project and puts it live on services like Vercel. It provisions the database, file storage, and every other prerequisite automatically, sets all environment variables before the first build so there is one deploy instead of a fix-and-redeploy loop, and ends by checking the live site with real commands.
+
+> Use the deploy-an-app skill to take this app live.
+
+## Everything is customizable
+
+Each skill has a `references` folder. Every component of the app and its tech stack lives there as a separate file: auth, database, email, payments, storage, and so on. Each file can be modified.
+
+Want a different auth provider? Ask your coding agent to swap it out in `references/auth.md`. Don't want to deploy to Vercel? Open deploy-an-app's references and swap Vercel for Cloudflare Workers, Hostinger, or whatever you prefer. As long as the service has a CLI the agent can drive, you should be fine.
+
+## Bonus: create a brand kit
+
+Need a logo? The create-brand-kit skill runs a full brand-identity process from any starting point, even just a name. You get a logomark, wordmark, lockups, a design system, icons, social icons, favicons, app icons, and a generated guidelines page. Useful right after starting an app, before you show it to anyone.
+
+> Use the create-brand-kit skill for my app.
 
 ## Adding a new skill
 
-1. Copy [`TEMPLATE.md`](TEMPLATE.md) to `skills/<skill-name>/SKILL.md` (folder name should match the skill name: lowercase, hyphens).
-2. Fill in the frontmatter (`name`, `description`) and write the instructions.
-3. Commit and push — that's it. The `skills` CLI discovers everything under `skills/` automatically; no registry or manifest to update.
-
-A skill can also ship supporting files (scripts, references, examples) alongside its `SKILL.md` in the same folder.
+Copy [`TEMPLATE.md`](TEMPLATE.md) to `skills/<skill-name>/SKILL.md` (lowercase, hyphens), fill in the frontmatter, write the instructions, and push. The `skills` CLI discovers everything under `skills/` automatically, so there is no registry to update. A skill can also ship supporting files (scripts, references, examples) in the same folder.
