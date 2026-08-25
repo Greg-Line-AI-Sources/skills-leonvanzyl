@@ -17,7 +17,14 @@ const CHROME = process.env.CHROME
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
     : process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
       : 'google-chrome');
-const svg = fs.readFileSync(src, 'utf8');
+// Strip active content before inlining (defence-in-depth — concept SVGs are agent-written):
+// scripts, foreignObject, on* handlers, and javascript:/external hrefs have no place in a logo.
+const sanitize = s => s
+  .replace(/<script[\s\S]*?<\/script\s*>/gi, '')
+  .replace(/<foreignObject[\s\S]*?<\/foreignObject\s*>/gi, '')
+  .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+  .replace(/\s(xlink:)?href\s*=\s*("(javascript:|https?:)[^"]*"|'(javascript:|https?:)[^']*')/gi, '');
+const svg = sanitize(fs.readFileSync(src, 'utf8'));
 
 const ladder = () => [64, 48, 32, 24, 16, 12].map(s =>
   `<div class="u"><div class="mk" style="width:${s}px;height:${s}px">${svg}</div><b>${s}</b></div>`).join('');

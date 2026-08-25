@@ -13,10 +13,17 @@ const CHROME = process.env.CHROME
   || (process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
     : process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
       : 'google-chrome');
-const mark = fs.readFileSync(markPath, 'utf8');
+// Strip active content before inlining, and escape text dropped into the HTML.
+const sanitize = s => s
+  .replace(/<script[\s\S]*?<\/script\s*>/gi, '')
+  .replace(/<foreignObject[\s\S]*?<\/foreignObject\s*>/gi, '')
+  .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+  .replace(/\s(xlink:)?href\s*=\s*("(javascript:|https?:)[^"]*"|'(javascript:|https?:)[^']*')/gi, '');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mark = sanitize(fs.readFileSync(markPath, 'utf8'));
 
 const M = (cls = '') => `<span class="m ${cls}">${mark}</span>`;
-const foot = [TAGLINE, DOMAIN].filter(Boolean).join('<br>');
+const foot = [TAGLINE, DOMAIN].filter(Boolean).map(esc).join('<br>');
 
 const html = `<html><head><meta charset="utf-8"><style>
 *{box-sizing:border-box}
@@ -70,14 +77,14 @@ h1{font:600 17px/1 "Segoe UI";margin:0 0 4px;letter-spacing:-.02em}
 .solidink svg *{fill:${INK} !important;stroke:${INK} !important}
 .photo{background:linear-gradient(115deg,#c9553f 0%,#7a3f8a 45%,#1f5f7a 100%);}
 </style></head><body>
-<h1>${NAME} — mark in situ</h1>
-<div class="sub">${path.basename(markPath)} — every context the mark actually has to survive</div>
+<h1>${esc(NAME)} — mark in situ</h1>
+<div class="sub">${esc(path.basename(markPath))} — every context the mark actually has to survive</div>
 
 <div class="row">
   <div class="panel" style="padding-bottom:26px">
     <div class="browser">
       <div class="tabs">
-        <div class="tab">${M('solid')}<span>${NAME}</span></div>
+        <div class="tab">${M('solid')}<span>${esc(NAME)}</span></div>
         <div class="tab off">GitHub</div><div class="tab off">Linear</div>
       </div>
       <div class="urlbar"><span class="dot" style="background:#3a3f4e"></span>${DOMAIN}</div>

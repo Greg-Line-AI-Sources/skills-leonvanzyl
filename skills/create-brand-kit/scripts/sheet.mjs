@@ -13,13 +13,21 @@ const CHROME = process.env.CHROME
 const files = fs.readdirSync(dir).filter(f => f.endsWith('.svg')).sort();
 if (!files.length) { console.error('no svgs in ' + dir); process.exit(1); }
 
+// Strip active content before inlining, and escape text dropped into the HTML.
+const sanitize = s => s
+  .replace(/<script[\s\S]*?<\/script\s*>/gi, '')
+  .replace(/<foreignObject[\s\S]*?<\/foreignObject\s*>/gi, '')
+  .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, '')
+  .replace(/\s(xlink:)?href\s*=\s*("(javascript:|https?:)[^"]*"|'(javascript:|https?:)[^']*')/gi, '');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
 const cards = files.map(f => {
-  const svg = fs.readFileSync(path.join(dir, f), 'utf8');
+  const svg = sanitize(fs.readFileSync(path.join(dir, f), 'utf8'));
   const sizes = [96, 48, 32, 16];
   const row = s => `<div class="sz"><div style="width:${s}px;height:${s}px">${svg}</div><b>${s}</b></div>`;
   return `
   <section>
-    <h2>${f}</h2>
+    <h2>${esc(f)}</h2>
     <div class="grid">
       <div class="cell dark"><div class="big">${svg}</div><div class="sizes">${sizes.map(row).join('')}</div><span class="lbl">on #060711</span></div>
       <div class="cell light"><div class="big">${svg}</div><div class="sizes">${sizes.map(row).join('')}</div><span class="lbl">on #FFFFFF</span></div>
@@ -49,7 +57,7 @@ h2{font:600 13px/1 ui-monospace,Consolas,monospace;margin:26px 0 8px;color:#8B90
 .mono svg [data-hole],.mono svg .hole{fill:#060711 !important;stroke:#060711 !important}
 .monod svg *{fill:#060711 !important;stroke:#060711 !important}
 .monod svg [data-hole],.monod svg .hole{fill:#fff !important;stroke:#fff !important}
-</style></head><body><h1>${title}</h1>${cards}</body></html>`;
+</style></head><body><h1>${esc(title)}</h1>${cards}</body></html>`;
 
 const tmp = path.join(path.dirname(out), '_sheet.html');
 fs.mkdirSync(path.dirname(out), { recursive: true });
